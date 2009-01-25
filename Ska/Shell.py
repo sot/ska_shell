@@ -1,3 +1,5 @@
+"""Utilities to run subprocesses"""
+
 import re
 import os
 import sys
@@ -43,9 +45,9 @@ def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
     and not worry about it.  This routine gives the right-most path precedence
     and modifies C{envs} in place.
 
-    @param envs: Dict of environment vars
-    @param pathvars: List of path vars that will be fixed
-    @return: None (envs is modified in-place)
+    :param envs: Dict of environment vars
+    :param pathvars: List of path vars that will be fixed
+    :rtype: None (envs is modified in-place)
     """
 
     # Process env vars that are contained in the PATH_ENVS set
@@ -63,8 +65,8 @@ def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
 def _parse_keyvals(keyvals):
     """Parse the key=val pairs from the newline-separated string.
 
-    @param keyvals: Newline-separated string with key=val pairs
-    @return: Dict of key=val pairs.
+    :param keyvals: Newline-separated string with key=val pairs
+    :rtype: Dict of key=val pairs.
     """
     re_keyval = re.compile(r'([\w_]+) \s* = \s* (.*)', re.VERBOSE)
     keyvalout = {}
@@ -76,17 +78,22 @@ def _parse_keyvals(keyvals):
     return keyvalout
 
 def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
-    """Run the command string cmdstr in a bash shell.  It can have multiple
+    """Run the command string ``cmdstr`` in a bash shell.  It can have multiple
     lines.  Each line is separately sent to the shell.  The exit status is
     checked if the shell comes back with a PS1 prompt. Bash control structures
     like if or for use prompt PS2 and in this case status is not checked.  At
-    the end the 'printenv' command is issued in order to find any changes to
+    the end the ``printenv`` command may be used in order to find any changes to
     the environment that occurred as a result of the commands.  If exit status
-    is non-zero at any point then processing is terminated and the bad exit
-    status value is returned.
+    is non-zero at any point then processing is terminated and a ``ShellError``
+    exception is raise.
 
-    Input: command string
-    Output: shell output
+    :param cmdstr: command string
+    :param logfile: append output to the suppplied file object
+    :param importenv: import any environent changes back to python env
+    :param getenv: get the environent changes after running ``cmdstr``
+    :param env: set environment using ``env`` dict prior to running commands
+
+    :rtype: (outlines, deltaenv)
     """
 
     # Import pexpect here so that this the other (Spawn) part of this module
@@ -147,24 +154,24 @@ def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
 # Some convenience methods for bashing
 
 def bash(cmdstr, logfile=None, importenv=False, env=None):
-    """Run the C{cmdstr} string in a bash shell.  See C{bash_shell} for options.
+    """Run the ``cmdstr`` string in a bash shell.  See ``bash_shell`` for options.
 
-    @return: bash output
+    :rtype: bash output
     """
     return bash_shell(cmdstr, logfile=logfile, importenv=importenv, env=env)[0]
 
 def getenv(cmdstr, importenv=False, env=None):
-    """Run the C{cmdstr} string in a bash shell.  See C{bash_shell} for options.
+    """Run the ``cmdstr`` string in a bash shell.  See ``bash_shell`` for options.
 
-    @return: Dict of environment vars update produced by C{cmdstr}
+    :rtype: Dict of environment vars update produced by ``cmdstr``
     """
     return bash_shell(cmdstr, importenv=importenv, env=env, getenv=True)[1]
 
 def importenv(cmdstr, env=None):
-    """Run C{cmdstr} in a bash shell and import the environment updates into the
-    current python environment (os.environ).  See C{bash_shell} for options.
+    """Run ``cmdstr`` in a bash shell and import the environment updates into the
+    current python environment (os.environ).  See ``bash_shell`` for options.
 
-    @return: Dict of environment vars update produced by C{cmdstr}
+    :rtype: Dict of environment vars update produced by ``cmdstr``
     """
     return bash_shell(cmdstr, importenv=True, env=env)[1]
 
@@ -179,53 +186,54 @@ class RunTimeoutError(RuntimeError):
     pass
 
 class Spawn(object):
-    """Provide methods to run subprocesses in a controlled and simple way.  Features:
+    """
+    Provide methods to run subprocesses in a controlled and simple way.  Features:
      - Uses the subprocess.Popen() class
      - Send stdout and/or stderr output to a file
      - Specify a job timeout
      - Catch exceptions and log warnings
 
-    Examples:
+    Example usage:
 
-    >>> from Ska.Shell import Spawn, bash, getenv, importenv
-    >>> 
-    >>> spawn = Spawn()
-    >>> status = spawn.run(['echo', 'hello'])
-    hello
-    >>> status
-    0
-    >>> 
-    >>> try:
-    ...     spawn.run(['bad', 'command'])
-    ... except Exception, error:
-    ...     error
-    ... 
-    OSError(2, 'No such file or directory')
-    >>> spawn.run(['bad', 'command'], catch=True)
-    Warning - OSError: [Errno 2] No such file or directory
-    >>> print spawn.exitstatus
-    None
-    >>> print spawn.outlines
-    ['Warning - OSError: [Errno 2] No such file or directory\\n']
-    >>> 
-    >>> spawn = Spawn(stdout=None, shell=True)
-    >>> spawn.run('echo hello')
-    0
-    >>> spawn.run('fail fail fail')
-    127
-    >>> 
-    >>> spawn = Spawn(stdout=None, shell=True, stderr=None)
-    >>> spawn.run('fail fail fail')
-    127
-    >>> print spawn.outlines
-    []
+      >>> from Ska.Shell import Spawn, bash, getenv, importenv
+      >>> 
+      >>> spawn = Spawn()
+      >>> status = spawn.run(['echo', 'hello'])
+      hello
+      >>> status
+      0
+      >>> 
+      >>> try:
+      ...     spawn.run(['bad', 'command'])
+      ... except Exception, error:
+      ...     error
+      ... 
+      OSError(2, 'No such file or directory')
+      >>> spawn.run(['bad', 'command'], catch=True)
+      Warning - OSError: [Errno 2] No such file or directory
+      >>> print spawn.exitstatus
+      None
+      >>> print spawn.outlines
+      ['Warning - OSError: [Errno 2] No such file or directory\\n']
+      >>> 
+      >>> spawn = Spawn(stdout=None, shell=True)
+      >>> spawn.run('echo hello')
+      0
+      >>> spawn.run('fail fail fail')
+      127
+      >>> 
+      >>> spawn = Spawn(stdout=None, shell=True, stderr=None)
+      >>> spawn.run('fail fail fail')
+      127
+      >>> print spawn.outlines
+      []
 
     Additional object attributes:
      - openfiles: List of file objects created during init corresponding
-                  to filenames supplied in C{outputs} list
+                  to filenames supplied in ``outputs`` list
     """
     def _open_for_write(self, f):
-        """Return a file object for writing for f, which may be nothing, a file
+        """Return a file object for writing for ``f``, which may be nothing, a file
         name, or a file-like object."""
         if not f:
             return _NullFile()
@@ -248,15 +256,15 @@ class Spawn(object):
                  stderr=subprocess.STDOUT, shell=False):
         """Create a Spawn object to run shell processes in a controlled way.
 
-        @param stdout: destination(s) for process stdout.  Can be None, a file name,
+        :param stdout: destination(s) for process stdout.  Can be None, a file name,
              a file object, or a list of these.
-        @param timeout: command timeout (default: no timeout)
-        @param catch: catch exceptions and just log a warning message
-        @param stderr: destination for process stderr.  Can be None, a file object,
+        :param timeout: command timeout (default: no timeout)
+        :param catch: catch exceptions and just log a warning message
+        :param stderr: destination for process stderr.  Can be None, a file object,
              or subprocess.STDOUT (default).  The latter merges stderr into stdout.
-        @param shell: send run() cmd to shell (subprocess Popen shell parameter)
+        :param shell: send run() cmd to shell (subprocess Popen shell parameter)
         
-        @return: Spawn object
+        :rtype: Spawn object
         """
         self.stdout = stdout
         self.timeout = timeout or 0
@@ -277,18 +285,18 @@ class Spawn(object):
         self.outlines.append(line)
 
     def run(self, cmd, timeout=None, catch=None, shell=None):
-        """Run the command C{cmd} and abort if timeout is exceeded.
+        """Run the command ``cmd`` and abort if timeout is exceeded.
 
         Attributes after run():
          - outlines: list of output lines from process
          - exitstatus: process exit status or None if an exception occurred
 
-        @param cmd: list of strings or a string(see Popen docs)
-        @param timeout: command timeout (default: C{self.timeout})
-        @param catch: catch exceptions (default: C{self.catch})
-        @param shell: run cmd in shell (default: C{self.shell})
+        :param cmd: list of strings or a string(see Popen docs)
+        :param timeout: command timeout (default: ``self.timeout``)
+        :param catch: catch exceptions (default: ``self.catch``)
+        :param shell: run cmd in shell (default: ``self.shell``)
 
-        @return: process exit value
+        :rtype: process exit value
         """
 
         # Use object defaults if params not supplied
