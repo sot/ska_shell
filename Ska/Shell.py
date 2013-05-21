@@ -7,12 +7,15 @@ import time
 import signal
 import subprocess
 
+
 class ShellError(Exception):
     pass
 
 # Give pexpect.spawn a new convenience method that sends a line and expects the prompt
+
+
 def _sendline_expect_func(prompt):
-    """Returns a convenience method to monkey-patch into pexpect.spawn.""" 
+    """Returns a convenience method to monkey-patch into pexpect.spawn."""
     def sendline_expect(self, cmd, quiet=False):
         """Send a command and expect the given prompt.  Return the 'before' part"""
         if quiet:
@@ -38,8 +41,9 @@ re_PROMPT = re.compile(r'Bash-\d\d:\d\d:\d\d([->]) ')
 # See skare/install.py for the Template code that can do interpolation of all
 # shell ${var} variables for debug
 
+
 def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
-                              'LD_LIBRARY_PATH', 'MANPATH', 'INFOPATH')):
+                               'LD_LIBRARY_PATH', 'MANPATH', 'INFOPATH')):
     """For the specified env vars that represent a search path, make sure that the
     paths are unique.  This allows the environment setting script to be lazy
     and not worry about it.  This routine gives the right-most path precedence
@@ -62,6 +66,7 @@ def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
                 path_outs.append(path)
         envs[key] = ':'.join(reversed(path_outs))
 
+
 def _parse_keyvals(keyvals):
     """Parse the key=val pairs from the newline-separated string.
 
@@ -76,6 +81,7 @@ def _parse_keyvals(keyvals):
             key, val = m.groups()
             keyvalout[key] = val
     return keyvalout
+
 
 def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
     """Run the command string ``cmdstr`` in a bash shell.  It can have multiple
@@ -105,7 +111,7 @@ def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
     os.environ['PS2'] = PROMPT2
     shell = pexpect.spawn('/bin/bash --noprofile --norc --noediting', timeout=1e8)
     shell.delaybeforesend = 0.01
-    shell.logfile_read=logfile
+    shell.logfile_read = logfile
     shell.expect(r'.+')
 
     if env:
@@ -123,13 +129,13 @@ def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
                 exitstr = shell.sendline_expect('echo $?', quiet=True)[0].strip()
                 exitstatus = int(exitstr)
             except ValueError:
-                msg = ("Shell / expect got out of sync:\n" + 
+                msg = ("Shell / expect got out of sync:\n" +
                        "Response to 'echo $?' was apparently '%s'" % exitstr)
-                raise ShellError, msg
-                
+                raise ShellError(msg)
+
             if exitstatus > 0:
-                raise ShellError, 'Bash command %s failed with exit status %d' % (cmdstr,
-                                                                                  exitstatus)
+                raise ShellError('Bash command %s failed with exit status %d' % (cmdstr,
+                                                                                 exitstatus))
 
     # Update os.environ based on changes to environment made by cmdstr
     deltaenv = dict()
@@ -153,6 +159,7 @@ def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
 
 # Some convenience methods for bashing
 
+
 def bash(cmdstr, logfile=None, importenv=False, env=None):
     """Run the ``cmdstr`` string in a bash shell.  See ``bash_shell`` for options.
 
@@ -160,12 +167,14 @@ def bash(cmdstr, logfile=None, importenv=False, env=None):
     """
     return bash_shell(cmdstr, logfile=logfile, importenv=importenv, env=env)[0]
 
+
 def getenv(cmdstr, importenv=False, env=None):
     """Run the ``cmdstr`` string in a bash shell.  See ``bash_shell`` for options.
 
     :rtype: Dict of environment vars update produced by ``cmdstr``
     """
     return bash_shell(cmdstr, importenv=importenv, env=env, getenv=True)[1]
+
 
 def importenv(cmdstr, env=None):
     """Run ``cmdstr`` in a bash shell and import the environment updates into the
@@ -176,14 +185,25 @@ def importenv(cmdstr, env=None):
     return bash_shell(cmdstr, importenv=True, env=env)[1]
 
 # Null file-like object.  Needed because pyfits spews warnings to stdout
+
+
 class _NullFile:
-    def write(self, data): pass
-    def writelines(self, lines): pass
-    def flush(self): pass
-    def close(self): pass
+    def write(self, data):
+        pass
+
+    def writelines(self, lines):
+        pass
+
+    def flush(self):
+        pass
+
+    def close(self):
+        pass
+
 
 class RunTimeoutError(RuntimeError):
     pass
+
 
 class Spawn(object):
     """
@@ -196,18 +216,18 @@ class Spawn(object):
     Example usage:
 
       >>> from Ska.Shell import Spawn, bash, getenv, importenv
-      >>> 
+      >>>
       >>> spawn = Spawn()
       >>> status = spawn.run(['echo', 'hello'])
       hello
       >>> status
       0
-      >>> 
+      >>>
       >>> try:
       ...     spawn.run(['bad', 'command'])
       ... except Exception, error:
       ...     error
-      ... 
+      ...
       OSError(2, 'No such file or directory')
       >>> spawn.run(['bad', 'command'], catch=True)
       Warning - OSError: [Errno 2] No such file or directory
@@ -215,13 +235,13 @@ class Spawn(object):
       None
       >>> print spawn.outlines
       ['Warning - OSError: [Errno 2] No such file or directory\\n']
-      >>> 
+      >>>
       >>> spawn = Spawn(stdout=None, shell=True)
       >>> spawn.run('echo hello')
       0
       >>> spawn.run('fail fail fail')
       127
-      >>> 
+      >>>
       >>> spawn = Spawn(stdout=None, shell=True, stderr=None)
       >>> spawn.run('fail fail fail')
       127
@@ -244,12 +264,11 @@ class Spawn(object):
             openfile = open(f, 'w', 1)  # raises TypeError if f is not suitable
             self.openfiles.append(openfile)  # Store open file objects created by this object
             return openfile
-        
+
     @staticmethod
     def _timeout_handler(pid, timeout):
         def handler(signum, frame):
-            raise RunTimeoutError, \
-                  'Process pid=%d timed out after %d secs' % (pid, timeout)
+            raise RunTimeoutError('Process pid=%d timed out after %d secs' % (pid, timeout))
         return handler
 
     def __init__(self, stdout=sys.stdout, timeout=None, catch=False,
@@ -263,7 +282,7 @@ class Spawn(object):
         :param stderr: destination for process stderr.  Can be None, a file object,
              or subprocess.STDOUT (default).  The latter merges stderr into stdout.
         :param shell: send run() cmd to shell (subprocess Popen shell parameter)
-        
+
         :rtype: Spawn object
         """
         self.stdout = stdout
@@ -272,7 +291,7 @@ class Spawn(object):
         self.stderr = stderr
         self.shell = shell
         self.openfiles = []             # Newly opened file objects for stdout
-        
+
         # stdout can be None, <file>, 'filename', or sequence(..) of these
         try:
             self.outfiles = [self._open_for_write(self.stdout)]
