@@ -1,7 +1,7 @@
 import os
 import unittest
 from StringIO import StringIO
-from Ska.Shell import Spawn, RunTimeoutError, bash, getenv, importenv
+from Ska.Shell import Spawn, RunTimeoutError, bash, tcsh, getenv, importenv
 
 outfile = 'ska_shell_test.dat'
 
@@ -53,7 +53,7 @@ class TestSpawn(unittest.TestCase):
         self.assertNotEqual(spawn.exitstatus, None)
 
 
-class TestShell:
+class TestBash:
     def test_bash(self):
         outlines = bash('echo line1; echo line2')
         assert outlines == ['line1', 'line2']
@@ -78,6 +78,34 @@ class TestShell:
         assert outlines[1] == 'line1'
         assert outlines[2] == 'line2'
         assert outlines[3].startswith('Bash')
+
+
+class TestTcsh:
+    def test_tcsh(self):
+        outlines = tcsh('echo line1; echo line2')
+        assert outlines == ['line1', 'line2']
+
+    def test_env(self):
+        envs = getenv('setenv TEST_ENV_VAR2 "hello"', shell='tcsh')
+        assert envs['TEST_ENV_VAR2'] == 'hello'
+        outlines = tcsh('echo $TEST_ENV_VAR2', env=envs)
+        assert outlines == ['hello']
+
+    def test_importenv(self):
+        importenv('setenv TEST_ENV_VAR3 "hello"', env={'TEST_ENV_VAR4': 'world'}, shell='tcsh')
+        assert os.environ['TEST_ENV_VAR3'] == 'hello'
+        assert os.environ['TEST_ENV_VAR4'] == 'world'
+
+    def test_logfile(self, tmpdir):
+        logfile = StringIO()
+        tcsh('echo line1; echo line2', logfile=logfile)
+        logfile.seek(0)
+        outlines = logfile.read().splitlines()
+        assert outlines[0].startswith('Tcsh-')
+        assert outlines[1] == ''
+        assert outlines[2] == 'line1'
+        assert outlines[3] == 'line2'
+        assert outlines[4].startswith('Tcsh')
 
 
 if __name__ == "__main__":

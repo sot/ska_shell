@@ -78,7 +78,7 @@ def _parse_keyvals(keyvals):
     return keyvalout
 
 
-def _setup_bash_shell():
+def _setup_bash_shell(logfile):
     # Import pexpect here so that this the other (Spawn) part of this module
     # doesn't depend on pexpect (which is not in the std library)
     import pexpect
@@ -91,12 +91,13 @@ def _setup_bash_shell():
     os.environ['PS1'] = prompt1
     os.environ['PS2'] = prompt2
     shell = pexpect.spawn('/bin/bash --noprofile --norc --noediting', timeout=1e8)
+    shell.logfile_read = logfile
     shell.expect(r'.+')
 
     return shell, re_prompt
 
 
-def _setup_tcsh_shell():
+def _setup_tcsh_shell(logfile):
     import pexpect
     prompt = r'Tcsh-%P> '
     prompt2 = r'Tcsh-%P- '
@@ -111,6 +112,11 @@ def _setup_tcsh_shell():
     shell.sendline('set prompt="{}"'.format(prompt))
     shell.expect(re_prompt)
     shell.sendline('set prompt2="{}"'.format(prompt2))
+    shell.expect(re_prompt)
+
+    shell.sendline('')
+    shell.expect('.*')
+    shell.logfile_read = logfile
     shell.expect(re_prompt)
 
     return shell, re_prompt
@@ -132,18 +138,19 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
 
     :rtype: (outlines, deltaenv)
     """
-    if shell == 'bash':
+    shell_name = shell
+    if shell_name == 'bash':
         setup_shell_func = _setup_bash_shell
-    elif shell == 'tcsh':
+    elif shell_name == 'tcsh':
         setup_shell_func = _setup_tcsh_shell
     else:
         raise ValueError("shell argument must be 'bash' or 'tcsh'")
 
-    shell, re_prompt = setup_shell_func()
+    shell, re_prompt = setup_shell_func(logfile)
     shell.delaybeforesend = 0.0
 
     if env:
-        setenv_str = "export %s='%s'" if shell == 'bash' else "setenv %s '%s'"
+        setenv_str = "export %s='%s'" if shell_name == 'bash' else "setenv %s '%s'"
         # cmd = ';'.join(setenv_str % (key, val) for key, val in env.items())
         # shell.sendline_expect(cmd, quiet=True)
 
@@ -153,7 +160,6 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
             shell.sendline_expect(setenv_str % (key, val))
 
     shell.delaybeforesend = 0.01
-    shell.logfile_read = logfile
     outlines = []
     for line in cmdstr.splitlines():
         outlines += shell.sendline_expect(line)
@@ -175,7 +181,7 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
     # Update os.environ based on changes to environment made by cmdstr
     deltaenv = dict()
     if importenv or getenv:
-        expected_diff_set = set(('PS1', 'PS2', '_', 'SHLVL')) if shell == 'bash' else set()
+        expected_diff_set = set(('PS1', 'PS2', '_', 'SHLVL')) if shell_name == 'bash' else set()
         currenv = dict(os.environ)
         newenv = _parse_keyvals(shell.sendline_expect("printenv", quiet=True))
         _fix_paths(newenv)
@@ -232,7 +238,7 @@ def importenv(cmdstr, shell='bash', env=None):
 
     :returns: Dict of environment vars update produced by ``cmdstr``
     """
-    outlines, newenv = run_shell(cmdstr, importenv=True, env=env)
+    outlines, newenv = run_shell(cmdstr, importenv=True, env=env, shell=shell)
     return newenv
 
 # Null file-like object.  Needed because pyfits spews warnings to stdout
