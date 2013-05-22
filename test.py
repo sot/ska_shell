@@ -1,9 +1,10 @@
 import os
 import unittest
 from StringIO import StringIO
-from Ska.Shell import Spawn, RunTimeoutError
+from Ska.Shell import Spawn, RunTimeoutError, bash, getenv, importenv
 
 outfile = 'ska_shell_test.dat'
+
 
 class TestSpawn(unittest.TestCase):
     def setUp(self):
@@ -43,13 +44,40 @@ class TestSpawn(unittest.TestCase):
         self.assertEqual(self.f.getvalue(), '123456')
         self.assertEqual(self.g.getvalue(), '123456')
         self.assertEqual(spawn.exitstatus, 0)
-        
+
     def test_shell_error(self):
         # With shell=True you don't get an OSError
         spawn = Spawn(shell=True, stdout=None)
         spawn.run('sadfasdfasdf')
         self.assertNotEqual(spawn.exitstatus, 0)
         self.assertNotEqual(spawn.exitstatus, None)
+
+
+class TestShell:
+    def test_bash(self):
+        outlines = bash('echo line1; echo line2')
+        assert outlines == ['line1', 'line2']
+
+    def test_env(self):
+        envs = getenv('export TEST_ENV_VAR="hello"')
+        assert envs['TEST_ENV_VAR'] == 'hello'
+        outlines = bash('echo $TEST_ENV_VAR', env=envs)
+        assert outlines == ['hello']
+
+    def test_importenv(self):
+        importenv('export TEST_ENV_VAR="hello"', env={'TEST_ENV_VAR2': 'world'})
+        assert os.environ['TEST_ENV_VAR'] == 'hello'
+        assert os.environ['TEST_ENV_VAR2'] == 'world'
+
+    def test_logfile(self, tmpdir):
+        logfile = StringIO()
+        bash('echo line1; echo line2', logfile=logfile)
+        logfile.seek(0)
+        outlines = logfile.read().splitlines()
+        assert outlines[0].startswith('Bash-')
+        assert outlines[1] == 'line1'
+        assert outlines[2] == 'line2'
+        assert outlines[3].startswith('Bash')
 
 
 if __name__ == "__main__":
