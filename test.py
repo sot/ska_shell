@@ -69,7 +69,7 @@ class TestBash:
         assert os.environ['TEST_ENV_VAR'] == 'hello'
         assert os.environ['TEST_ENV_VAR2'] == 'world'
 
-    def test_logfile(self, tmpdir):
+    def test_logfile(self):
         logfile = StringIO()
         bash('echo line1; echo line2', logfile=logfile)
         logfile.seek(0)
@@ -78,6 +78,12 @@ class TestBash:
         assert outlines[1] == 'line1'
         assert outlines[2] == 'line2'
         assert outlines[3].startswith('Bash')
+
+    def test_ciao(self):
+        envs = getenv('. /soft/ciao/bin/ciao.sh')
+        test_script = ['printenv {}'.format(name) for name in sorted(envs)]
+        outlines = bash('\n'.join(test_script), env=envs)
+        assert outlines == [envs[name] for name in sorted(envs)]
 
 
 class TestTcsh:
@@ -106,6 +112,18 @@ class TestTcsh:
         assert outlines[2] == 'line1'
         assert outlines[3] == 'line2'
         assert outlines[4].startswith('Tcsh')
+
+    def test_ascds(self):
+        envs = getenv('source /home/ascds/.ascrc -r release', shell='tcsh')
+        test_script = ['printenv {}'.format(name) for name in sorted(envs)]
+        outlines = tcsh('\n'.join(test_script), env=envs)
+        assert outlines == [envs[name] for name in sorted(envs)]
+
+    def test_ciao(self):
+        envs = getenv('source /soft/ciao/bin/ciao.csh', shell='tcsh')
+        test_script = ['printenv {}'.format(name) for name in sorted(envs)]
+        outlines = tcsh('\n'.join(test_script), env=envs)
+        assert outlines == [envs[name] for name in sorted(envs)]
 
 
 if __name__ == "__main__":

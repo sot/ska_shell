@@ -151,12 +151,8 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
 
     if env:
         setenv_str = "export %s='%s'" if shell_name == 'bash' else "setenv %s '%s'"
-        # cmd = ';'.join(setenv_str % (key, val) for key, val in env.items())
-        # shell.sendline_expect(cmd, quiet=True)
-
         for key, val in env.items():
             # Would be better to properly escape any shell characters.
-            # And would be good to make sure this actually worked...
             shell.sendline_expect(setenv_str % (key, val))
 
     shell.delaybeforesend = 0.01
