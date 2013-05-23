@@ -198,6 +198,27 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
 
 # Some convenience methods
 
+def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
+    """
+    Run the command string ``cmdstr`` in a bash shell.  It can have
+    multiple lines.  Each line is separately sent to the shell.  The exit status is
+    checked if the shell comes back with a prompt. If exit status is non-zero at any point
+    then processing is terminated and a ``ShellError`` exception is raise.
+
+    :param cmdstr: command string
+    :param shell: shell for command -- 'bash' (default) or 'tcsh'
+    :param logfile: append output to the suppplied file object
+    :param importenv: import any environent changes back to python env
+    :param getenv: get the environent changes after running ``cmdstr``
+    :param env: set environment using ``env`` dict prior to running commands
+
+    :rtype: (outlines, deltaenv)
+    """
+    outlines, newenv = run_shell(cmdstr, shell='bash', logfile=logfile,
+                                 importenv=importenv, env=env)
+    return outlines, newenv
+
+
 def bash(cmdstr, logfile=None, importenv=False, env=None):
     """Run the ``cmdstr`` string in a bash shell.  See ``run_shell`` for options.
 
@@ -216,6 +237,27 @@ def tcsh(cmdstr, logfile=None, importenv=False, env=None):
     outlines, newenv = run_shell(cmdstr, shell='tcsh', logfile=logfile,
                                  importenv=importenv, env=env)
     return outlines
+
+
+def tcsh_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
+    """
+    Run the command string ``cmdstr`` in a tcsh shell.  It can have
+    multiple lines.  Each line is separately sent to the shell.  The exit status is
+    checked if the shell comes back with a prompt. If exit status is non-zero at any point
+    then processing is terminated and a ``ShellError`` exception is raise.
+
+    :param cmdstr: command string
+    :param shell: shell for command -- 'bash' (default) or 'tcsh'
+    :param logfile: append output to the suppplied file object
+    :param importenv: import any environent changes back to python env
+    :param getenv: get the environent changes after running ``cmdstr``
+    :param env: set environment using ``env`` dict prior to running commands
+
+    :rtype: (outlines, deltaenv)
+    """
+    outlines, newenv = run_shell(cmdstr, shell='tcsh', logfile=logfile,
+                                 importenv=importenv, env=env)
+    return outlines, newenv
 
 
 def getenv(cmdstr, shell='bash', importenv=False, env=None):

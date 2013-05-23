@@ -1,7 +1,8 @@
 import os
 import unittest
 from StringIO import StringIO
-from Ska.Shell import Spawn, RunTimeoutError, bash, tcsh, getenv, importenv
+from Ska.Shell import (Spawn, RunTimeoutError, bash, tcsh, getenv, importenv,
+                       tcsh_shell, bash_shell)
 
 outfile = 'ska_shell_test.dat'
 
@@ -58,6 +59,11 @@ class TestBash:
         outlines = bash('echo line1; echo line2')
         assert outlines == ['line1', 'line2']
 
+    def test_bash_shell(self):
+        outlines, env = bash_shell('echo line1; echo line2')
+        assert outlines == ['line1', 'line2']
+        assert env == {}
+
     def test_env(self):
         envs = getenv('export TEST_ENV_VAR="hello"')
         assert envs['TEST_ENV_VAR'] == 'hello'
@@ -90,6 +96,11 @@ class TestTcsh:
     def test_tcsh(self):
         outlines = tcsh('echo line1; echo line2')
         assert outlines == ['line1', 'line2']
+
+    def test_tcsh_shell(self):
+        outlines, env = tcsh_shell('echo line1; echo line2')
+        assert outlines == ['line1', 'line2']
+        assert env == {}
 
     def test_env(self):
         envs = getenv('setenv TEST_ENV_VAR2 "hello"', shell='tcsh')
