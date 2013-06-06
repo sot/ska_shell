@@ -117,7 +117,8 @@ class TestTcsh:
         logfile = StringIO()
         tcsh('echo line1; echo line2', logfile=logfile)
         logfile.seek(0)
-        outlines = logfile.read().splitlines()
+        out = logfile.read()
+        outlines = out.strip().splitlines()
         assert outlines[0].startswith('Tcsh-')
         assert outlines[1] == ''
         assert outlines[2] == 'line1'
