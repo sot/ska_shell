@@ -98,7 +98,6 @@ def _setup_bash_shell(logfile):
 
 
 def _setup_tcsh_shell(logfile):
-    # import pdb; pdb.set_trace()
     import pexpect
     prompt = r'Tcsh-%P> '
     prompt2 = r'Tcsh-%P- '
