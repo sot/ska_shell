@@ -101,7 +101,7 @@ def _setup_tcsh_shell(logfile):
     import pexpect
     prompt = r'Tcsh-%P> '
     prompt2 = r'Tcsh-%P- '
-    re_prompt = re.compile(r'Tcsh-\d\d:\d\d:\d\d([->]) ')
+    re_prompt = re.compile(r'Tcsh-(\d)?\d:\d\d:\d\d([->]) ')
 
     # Tcsh puts an extra \r after the original command, which turns in an extra
     # line that needs to be skipped.
