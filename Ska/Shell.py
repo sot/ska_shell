@@ -6,6 +6,8 @@ import sys
 import signal
 import subprocess
 
+__version__ = '0.3.1'
+
 
 class ShellError(Exception):
     pass
