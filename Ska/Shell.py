@@ -6,7 +6,10 @@ import sys
 import signal
 import subprocess
 
-__version__ = '0.3.1'
+import six
+import pexpect
+
+__version__ = '0.3.2'
 
 
 class ShellError(Exception):
@@ -81,9 +84,6 @@ def _parse_keyvals(keyvals):
 
 
 def _setup_bash_shell(logfile):
-    # Import pexpect here so that this the other (Spawn) part of this module
-    # doesn't depend on pexpect (which is not in the std library)
-    import pexpect
     prompt1 = r'Bash-\t> '
     prompt2 = r'Bash-\t- '
     re_prompt = re.compile(r'Bash-\d\d:\d\d:\d\d([->]) ')
@@ -92,7 +92,8 @@ def _setup_bash_shell(logfile):
 
     os.environ['PS1'] = prompt1
     os.environ['PS2'] = prompt2
-    shell = pexpect.spawn('/bin/bash --noprofile --norc --noediting', timeout=1e8)
+    spawn = pexpect.spawn if six.PY2 else pexpect.spawnu
+    shell = spawn('/bin/bash --noprofile --norc --noediting', timeout=1e8)
     shell.logfile_read = logfile
     shell.expect(r'.+')
 
@@ -100,7 +101,6 @@ def _setup_bash_shell(logfile):
 
 
 def _setup_tcsh_shell(logfile):
-    import pexpect
     prompt = r'Tcsh-%P> '
     prompt2 = r'Tcsh-%P- '
     re_prompt = re.compile(r'Tcsh-(\d)?\d:\d\d:\d\d([->]) ')
@@ -109,7 +109,8 @@ def _setup_tcsh_shell(logfile):
     # line that needs to be skipped.
     pexpect.spawn.sendline_expect = _sendline_expect_func(re_prompt, n_skip=2)
 
-    shell = pexpect.spawn('/bin/tcsh -f', timeout=1e8)
+    spawn = pexpect.spawn if six.PY2 else pexpect.spawnu
+    shell = spawn('/bin/tcsh -f', timeout=1e8)
 
     shell.sendline('set prompt="{}"'.format(prompt))
     shell.expect(re_prompt)
@@ -427,7 +428,8 @@ class Spawn(object):
         self.exitstatus = None
 
         try:
-            self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=stderr, shell=shell)
+            self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=stderr, shell=shell,
+                                            universal_newlines=True)
 
             prev_alarm_handler = signal.signal(signal.SIGALRM,
                                                Spawn._timeout_handler(self.process.pid, timeout))
@@ -439,13 +441,13 @@ class Spawn(object):
 
             signal.signal(signal.SIGALRM, prev_alarm_handler)
 
-        except RunTimeoutError, e:
+        except RunTimeoutError as e:
             if catch:
                 self._write('Warning - RunTimeoutError: %s\n' % e)
             else:
                 raise
 
-        except OSError, e:
+        except OSError as e:
             if catch:
                 self._write('Warning - OSError: %s\n' % e)
             else:

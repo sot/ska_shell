@@ -1,6 +1,6 @@
 import os
 import unittest
-from StringIO import StringIO
+from six.moves import cStringIO as StringIO
 from Ska.Shell import (Spawn, RunTimeoutError, bash, tcsh, getenv, importenv,
                        tcsh_shell, bash_shell)
 
