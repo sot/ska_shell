@@ -7,7 +7,6 @@ import signal
 import subprocess
 
 import six
-import pexpect
 
 __version__ = '0.3.2'
 
@@ -84,6 +83,9 @@ def _parse_keyvals(keyvals):
 
 
 def _setup_bash_shell(logfile):
+    # Import pexpect here so that this the other (Spawn) part of this module
+    # doesn't depend on pexpect (which is not in the std library)
+    import pexpect
     prompt1 = r'Bash-\t> '
     prompt2 = r'Bash-\t- '
     re_prompt = re.compile(r'Bash-\d\d:\d\d:\d\d([->]) ')
@@ -101,6 +103,7 @@ def _setup_bash_shell(logfile):
 
 
 def _setup_tcsh_shell(logfile):
+    import pexpect
     prompt = r'Tcsh-%P> '
     prompt2 = r'Tcsh-%P- '
     re_prompt = re.compile(r'Tcsh-(\d)?\d:\d\d:\d\d([->]) ')
