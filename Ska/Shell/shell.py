@@ -8,8 +8,6 @@ import subprocess
 
 import six
 
-__version__ = '0.3.2'
-
 
 class ShellError(Exception):
     pass

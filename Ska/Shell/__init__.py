@@ -1,5 +1,6 @@
 from .shell import *
-from .shell import __version__
+
+__version__ = '3.3.1'
 
 
 def test(*args, **kwargs):
