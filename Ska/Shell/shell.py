@@ -216,7 +216,7 @@ def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
     :rtype: (outlines, deltaenv)
     """
     outlines, newenv = run_shell(cmdstr, shell='bash', logfile=logfile,
-                                 importenv=importenv, env=env)
+                                 importenv=importenv, getenv=getenv, env=env)
     return outlines, newenv
 
 
@@ -257,7 +257,7 @@ def tcsh_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
     :rtype: (outlines, deltaenv)
     """
     outlines, newenv = run_shell(cmdstr, shell='tcsh', logfile=logfile,
-                                 importenv=importenv, env=env)
+                                 importenv=importenv, getenv=getenv, env=env)
     return outlines, newenv
 
 
