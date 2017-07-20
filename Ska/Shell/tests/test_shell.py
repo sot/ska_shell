@@ -65,22 +65,22 @@ class TestBash:
         assert env == {}
 
     def test_env(self):
-        envs = getenv('export TEST_ENV_VAR="hello"')
-        assert envs['TEST_ENV_VAR'] == 'hello'
-        outlines = bash('echo $TEST_ENV_VAR', env=envs)
+        envs = getenv('export TEST_ENV_VARA="hello"')
+        assert envs['TEST_ENV_VARA'] == 'hello'
+        outlines = bash('echo $TEST_ENV_VARA', env=envs)
         assert outlines == ['hello']
 
     def test_importenv(self):
-        importenv('export TEST_ENV_VAR="hello"', env={'TEST_ENV_VAR2': 'world'})
-        assert os.environ['TEST_ENV_VAR'] == 'hello'
-        assert os.environ['TEST_ENV_VAR2'] == 'world'
+        importenv('export TEST_ENV_VARC="hello"', env={'TEST_ENV_VARB': 'world'})
+        assert os.environ['TEST_ENV_VARC'] == 'hello'
+        assert os.environ['TEST_ENV_VARB'] == 'world'
 
     def test_logfile(self):
         logfile = StringIO()
-        bash('echo line1; echo line2', logfile=logfile)
-        logfile.seek(0)
-        outlines = logfile.read().splitlines()
-        assert outlines[0].startswith('Bash-')
+        cmd = 'echo line1; echo line2'
+        bash(cmd, logfile=logfile)
+        outlines = logfile.getvalue().splitlines()
+        assert outlines[0].endswith(cmd)
         assert outlines[1] == 'line1'
         assert outlines[2] == 'line2'
         assert outlines[3].startswith('Bash')
@@ -115,11 +115,11 @@ class TestTcsh:
 
     def test_logfile(self, tmpdir):
         logfile = StringIO()
-        tcsh('echo line1; echo line2', logfile=logfile)
-        logfile.seek(0)
-        out = logfile.read()
+        cmd = 'echo line1; echo line2'
+        tcsh(cmd, logfile=logfile)
+        out = logfile.getvalue()
         outlines = out.strip().splitlines()
-        assert outlines[0].startswith('Tcsh-')
+        assert outlines[0].endswith(cmd)
         assert outlines[1] == ''
         assert outlines[2] == 'line1'
         assert outlines[3] == 'line2'
