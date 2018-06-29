@@ -71,6 +71,13 @@ class TestBash:
         outlines = bash('echo $TEST_ENV_VARA', env=envs)
         assert outlines == ['hello']
 
+    def test_promptenv(self):
+        # Confirm that a messed up PS1 won't be a problem
+        # If the user messes with the prompts during use of the shell, all bets are off
+        # This test will just hang if the fix isn't implemented (should add pytest-timeout)
+        outlines = bash("echo 'hello'", env={'PS1': "(hello) \\s-\\v\\$"})
+        assert outlines == ['hello']
+
     def test_importenv(self):
         importenv('export TEST_ENV_VARC="hello"', env={'TEST_ENV_VARB': 'world'})
         assert os.environ['TEST_ENV_VARC'] == 'hello'
