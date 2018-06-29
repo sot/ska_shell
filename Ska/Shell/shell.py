@@ -160,10 +160,9 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
             setenv_str = "setenv %s '%s'"
             exclude_vars = ['PROMPT', 'PROMPT2']
         for key, val in env.items():
-            if key in exclude_vars:
-                continue
-            # Would be better to properly escape any shell characters.
-            shell.sendline_expect(setenv_str % (key, val))
+            if key not in exclude_vars:
+                # Would be better to properly escape any shell characters.
+                shell.sendline_expect(setenv_str % (key, val))
 
     shell.delaybeforesend = 0.01
     outlines = []
