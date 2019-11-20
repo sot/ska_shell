@@ -5,6 +5,8 @@ from six.moves import cStringIO as StringIO
 from Ska.Shell import (Spawn, RunTimeoutError, bash, tcsh, getenv, importenv,
                        tcsh_shell, bash_shell)
 
+HAS_HEAD_CIAO = os.path.exists('/soft/ciao/bin/ciao.sh')
+
 outfile = 'ska_shell_test.dat'
 
 
@@ -93,6 +95,7 @@ class TestBash:
         assert outlines[2] == 'line2'
         assert outlines[3].startswith('Bash')
 
+    @pytest.mark.skipif('not HAS_HEAD_CIAO', reason='Test requires /soft/ciao/bin/ciao.sh')
     def test_ciao(self):
         envs = getenv('. /soft/ciao/bin/ciao.sh')
         test_script = ['printenv {}'.format(name) for name in sorted(envs)]
