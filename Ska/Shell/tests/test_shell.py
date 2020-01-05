@@ -26,13 +26,13 @@ class TestSpawn:
         spawn = Spawn(stdout=None)
         with pytest.raises(OSError):
             spawn.run('bad command')
-        assert spawn.exitstatus == None
+        assert spawn.exitstatus is None
 
     def test_timeout_error(self):
         spawn = Spawn(shell=True, timeout=1, stdout=None)
         with pytest.raises(RunTimeoutError):
             spawn.run('sleep 5')
-        assert spawn.exitstatus == None
+        assert spawn.exitstatus is None
 
     def test_grab_stderr(self, tmpdir):
         tmp = tmpdir.join("test.out")
@@ -152,7 +152,3 @@ class TestTcsh:
         test_script = ['printenv {}'.format(name) for name in sorted(envs)]
         outlines = tcsh('\n'.join(test_script), env=envs)
         assert outlines == [envs[name] for name in sorted(envs)]
-
-
-if __name__ == "__main__":
-    unittest.main()
