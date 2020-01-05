@@ -96,7 +96,7 @@ def _setup_bash_shell(logfile):
     spawn = pexpect.spawn if six.PY2 else pexpect.spawnu
     shell = spawn('/bin/bash --noprofile --norc --noediting', timeout=1e8)
     shell.logfile_read = logfile
-    shell.expect(r'.+')
+    shell.expect(re_prompt)
 
     return shell, re_prompt
 

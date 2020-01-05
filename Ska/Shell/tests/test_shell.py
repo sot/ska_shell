@@ -90,10 +90,15 @@ class TestBash:
         cmd = 'echo line1; echo line2'
         bash(cmd, logfile=logfile)
         outlines = logfile.getvalue().splitlines()
-        assert outlines[0].endswith(cmd)
-        assert outlines[1] == 'line1'
-        assert outlines[2] == 'line2'
-        assert outlines[3].startswith('Bash')
+
+        # Note that starting bash may generate cruft at the beginning (e.g. the
+        # annoying message on catalina that zsh is now the default shell). So
+        # the tests reference expected output from the end of the log not the
+        # beginning.
+        assert outlines[-4].endswith(cmd)
+        assert outlines[-3] == 'line1'
+        assert outlines[-2] == 'line2'
+        assert outlines[-1].startswith('Bash')
 
     @pytest.mark.skipif('not HAS_HEAD_CIAO', reason='Test requires /soft/ciao/bin/ciao.sh')
     def test_ciao(self):
