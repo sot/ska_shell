@@ -5,6 +5,7 @@ import re
 import os
 import sys
 import signal
+import platform
 import subprocess
 
 
@@ -91,6 +92,8 @@ def _setup_bash_shell(logfile):
 
     os.environ['PS1'] = prompt1
     os.environ['PS2'] = prompt2
+    if platform.system() == 'Darwin':
+        os.environ['BASH_SILENCE_DEPRECATION_WARNING'] = '1'
     spawn = pexpect.spawnu
     shell = spawn('/bin/bash --noprofile --norc --noediting', timeout=1e8)
     shell.logfile_read = logfile
