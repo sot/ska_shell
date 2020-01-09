@@ -5,9 +5,8 @@ import re
 import os
 import sys
 import signal
+import platform
 import subprocess
-
-import six
 
 
 class ShellError(Exception):
@@ -93,10 +92,12 @@ def _setup_bash_shell(logfile):
 
     os.environ['PS1'] = prompt1
     os.environ['PS2'] = prompt2
-    spawn = pexpect.spawn if six.PY2 else pexpect.spawnu
+    if platform.system() == 'Darwin':
+        os.environ['BASH_SILENCE_DEPRECATION_WARNING'] = '1'
+    spawn = pexpect.spawnu
     shell = spawn('/bin/bash --noprofile --norc --noediting', timeout=1e8)
     shell.logfile_read = logfile
-    shell.expect(r'.+')
+    shell.expect(re_prompt)
 
     return shell, re_prompt
 
@@ -111,7 +112,7 @@ def _setup_tcsh_shell(logfile):
     # line that needs to be skipped.
     pexpect.spawn.sendline_expect = _sendline_expect_func(re_prompt, n_skip=2)
 
-    spawn = pexpect.spawn if six.PY2 else pexpect.spawnu
+    spawn = pexpect.spawnu
     shell = spawn('/bin/tcsh -f', timeout=1e8)
 
     shell.sendline('set prompt="{}"'.format(prompt))

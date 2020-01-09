@@ -26,13 +26,13 @@ class TestSpawn:
         spawn = Spawn(stdout=None)
         with pytest.raises(OSError):
             spawn.run('bad command')
-        assert spawn.exitstatus == None
+        assert spawn.exitstatus is None
 
     def test_timeout_error(self):
         spawn = Spawn(shell=True, timeout=1, stdout=None)
         with pytest.raises(RunTimeoutError):
             spawn.run('sleep 5')
-        assert spawn.exitstatus == None
+        assert spawn.exitstatus is None
 
     def test_grab_stderr(self, tmpdir):
         tmp = tmpdir.join("test.out")
@@ -90,10 +90,15 @@ class TestBash:
         cmd = 'echo line1; echo line2'
         bash(cmd, logfile=logfile)
         outlines = logfile.getvalue().splitlines()
-        assert outlines[0].endswith(cmd)
-        assert outlines[1] == 'line1'
-        assert outlines[2] == 'line2'
-        assert outlines[3].startswith('Bash')
+
+        # Note that starting bash may generate cruft at the beginning (e.g. the
+        # annoying message on catalina that zsh is now the default shell). So
+        # the tests reference expected output from the end of the log not the
+        # beginning.
+        assert outlines[-4].endswith(cmd)
+        assert outlines[-3] == 'line1'
+        assert outlines[-2] == 'line2'
+        assert outlines[-1].startswith('Bash')
 
     @pytest.mark.skipif('not HAS_HEAD_CIAO', reason='Test requires /soft/ciao/bin/ciao.sh')
     def test_ciao(self):
@@ -147,7 +152,3 @@ class TestTcsh:
         test_script = ['printenv {}'.format(name) for name in sorted(envs)]
         outlines = tcsh('\n'.join(test_script), env=envs)
         assert outlines == [envs[name] for name in sorted(envs)]
-
-
-if __name__ == "__main__":
-    unittest.main()
