@@ -9,6 +9,9 @@ HAS_HEAD_CIAO = os.path.exists('/soft/ciao/bin/ciao.sh')
 
 outfile = 'ska_shell_test.dat'
 
+# Skip the entire test suite on Windows
+pytestmark = pytest.mark.skipif(os.name == 'nt', reason='Ska.Shell not supported on Windows')
+
 
 class TestSpawn:
     def setup(self):
