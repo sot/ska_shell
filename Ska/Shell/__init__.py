@@ -3,7 +3,7 @@ import ska_helpers
 
 from .shell import *
 
-__version__ = ska_helpers.get_version(__package__)
+__version__ = ska_helpers.get_version('Ska.Shell')
 
 
 def test(*args, **kwargs):
