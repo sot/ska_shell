@@ -80,7 +80,7 @@
 <span class="c1"># Give pexpect.spawn a new convenience method that sends a line and expects the prompt</span>
 
 
-<span class="k">def</span> <span class="nf">_sendline_expect_func</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">n_skip</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="_sendline_expect_func"><a class="viewcode-back" href="../../../index.html#Ska.Shell._sendline_expect_func">[docs]</a><span class="k">def</span> <span class="nf">_sendline_expect_func</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">n_skip</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a convenience method to monkey-patch into pexpect.spawn.&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">sendline_expect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Send a command and expect the given prompt.  Return the &#39;before&#39; part&quot;&quot;&quot;</span>
@@ -98,13 +98,13 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">before</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="n">n_skip</span><span class="p">:]</span>
 
-    <span class="k">return</span> <span class="n">sendline_expect</span>
+    <span class="k">return</span> <span class="n">sendline_expect</span></div>
 
 <span class="c1"># See skare/install.py for the Template code that can do interpolation of all</span>
 <span class="c1"># shell ${var} variables for debug</span>
 
 
-<span class="k">def</span> <span class="nf">_fix_paths</span><span class="p">(</span><span class="n">envs</span><span class="p">,</span> <span class="n">pathvars</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;PATH&#39;</span><span class="p">,</span> <span class="s1">&#39;PERLLIB&#39;</span><span class="p">,</span> <span class="s1">&#39;PERL5LIB&#39;</span><span class="p">,</span> <span class="s1">&#39;PYTHONPATH&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="_fix_paths"><a class="viewcode-back" href="../../../index.html#Ska.Shell._fix_paths">[docs]</a><span class="k">def</span> <span class="nf">_fix_paths</span><span class="p">(</span><span class="n">envs</span><span class="p">,</span> <span class="n">pathvars</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;PATH&#39;</span><span class="p">,</span> <span class="s1">&#39;PERLLIB&#39;</span><span class="p">,</span> <span class="s1">&#39;PERL5LIB&#39;</span><span class="p">,</span> <span class="s1">&#39;PYTHONPATH&#39;</span><span class="p">,</span>
                                <span class="s1">&#39;LD_LIBRARY_PATH&#39;</span><span class="p">,</span> <span class="s1">&#39;MANPATH&#39;</span><span class="p">,</span> <span class="s1">&#39;INFOPATH&#39;</span><span class="p">)):</span>
     <span class="sd">&quot;&quot;&quot;For the specified env vars that represent a search path, make sure that the</span>
 <span class="sd">    paths are unique.  This allows the environment setting script to be lazy</span>
@@ -126,10 +126,10 @@
             <span class="k">if</span> <span class="n">path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pathset</span><span class="p">:</span>
                 <span class="n">pathset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
                 <span class="n">path_outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="n">envs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">path_outs</span><span class="p">))</span>
+        <span class="n">envs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">path_outs</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_parse_keyvals</span><span class="p">(</span><span class="n">keyvals</span><span class="p">):</span>
+<div class="viewcode-block" id="_parse_keyvals"><a class="viewcode-back" href="../../../index.html#Ska.Shell._parse_keyvals">[docs]</a><span class="k">def</span> <span class="nf">_parse_keyvals</span><span class="p">(</span><span class="n">keyvals</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parse the key=val pairs from the newline-separated string.</span>
 
 <span class="sd">    :param keyvals: Newline-separated string with key=val pairs</span>
@@ -142,7 +142,7 @@
         <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
             <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
             <span class="n">keyvalout</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
-    <span class="k">return</span> <span class="n">keyvalout</span>
+    <span class="k">return</span> <span class="n">keyvalout</span></div>
 
 
 <span class="k">def</span> <span class="nf">_setup_bash_shell</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
@@ -357,18 +357,18 @@
 <span class="c1"># Null file-like object.  Needed because pyfits spews warnings to stdout</span>
 
 
-<span class="k">class</span> <span class="nc">_NullFile</span><span class="p">:</span>
-    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="k">pass</span>
+<div class="viewcode-block" id="_NullFile"><a class="viewcode-back" href="../../../index.html#Ska.Shell._NullFile">[docs]</a><span class="k">class</span> <span class="nc">_NullFile</span><span class="p">:</span>
+<div class="viewcode-block" id="_NullFile.write"><a class="viewcode-back" href="../../../index.html#Ska.Shell._NullFile.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">pass</span></div>
 
-    <span class="k">def</span> <span class="nf">writelines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
-        <span class="k">pass</span>
+<div class="viewcode-block" id="_NullFile.writelines"><a class="viewcode-back" href="../../../index.html#Ska.Shell._NullFile.writelines">[docs]</a>    <span class="k">def</span> <span class="nf">writelines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="k">pass</span></div>
 
-    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">pass</span>
+<div class="viewcode-block" id="_NullFile.flush"><a class="viewcode-back" href="../../../index.html#Ska.Shell._NullFile.flush">[docs]</a>    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
 
-    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">pass</span>
+<div class="viewcode-block" id="_NullFile.close"><a class="viewcode-back" href="../../../index.html#Ska.Shell._NullFile.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div></div>
 
 
 <div class="viewcode-block" id="RunTimeoutError"><a class="viewcode-back" href="../../../index.html#Ska.Shell.RunTimeoutError">[docs]</a><span class="k">class</span> <span class="nc">RunTimeoutError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>

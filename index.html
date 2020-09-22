@@ -66,6 +66,46 @@
 <div class="section" id="functions">
 <h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
+<dt id="Ska.Shell._fix_paths">
+<code class="sig-prename descclassname">Ska.Shell.</code><code class="sig-name descname">_fix_paths</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">envs</span></em>, <em class="sig-param"><span class="n">pathvars</span><span class="o">=</span><span class="default_value">'PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH', 'LD_LIBRARY_PATH', 'MANPATH', 'INFOPATH'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Ska/Shell/shell.html#_fix_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell._fix_paths" title="Permalink to this definition">¶</a></dt>
+<dd><p>For the specified env vars that represent a search path, make sure that the
+paths are unique.  This allows the environment setting script to be lazy
+and not worry about it.  This routine gives the right-most path precedence
+and modifies C{envs} in place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>envs</strong> – Dict of environment vars</p></li>
+<li><p><strong>pathvars</strong> – List of path vars that will be fixed</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>None (envs is modified in-place)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="Ska.Shell._parse_keyvals">
+<code class="sig-prename descclassname">Ska.Shell.</code><code class="sig-name descname">_parse_keyvals</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keyvals</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Ska/Shell/shell.html#_parse_keyvals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell._parse_keyvals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the key=val pairs from the newline-separated string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>keyvals</strong> – Newline-separated string with key=val pairs</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Dict of key=val pairs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="Ska.Shell._sendline_expect_func">
+<code class="sig-prename descclassname">Ska.Shell.</code><code class="sig-name descname">_sendline_expect_func</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prompt</span></em>, <em class="sig-param"><span class="n">n_skip</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Ska/Shell/shell.html#_sendline_expect_func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell._sendline_expect_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a convenience method to monkey-patch into pexpect.spawn.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="Ska.Shell.bash">
 <code class="sig-prename descclassname">Ska.Shell.</code><code class="sig-name descname">bash</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cmdstr</span></em>, <em class="sig-param"><span class="n">logfile</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">importenv</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">env</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Ska/Shell/shell.html#bash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell.bash" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run the <code class="docutils literal notranslate"><span class="pre">cmdstr</span></code> string in a bash shell.  See <code class="docutils literal notranslate"><span class="pre">run_shell</span></code> for options.</p>
@@ -268,6 +308,32 @@ then processing is terminated and a <code class="docutils literal notranslate"><
 </dd>
 </dl>
 </dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="Ska.Shell._NullFile">
+<em class="property">class </em><code class="sig-prename descclassname">Ska.Shell.</code><code class="sig-name descname">_NullFile</code><a class="reference internal" href="_modules/Ska/Shell/shell.html#_NullFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell._NullFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="Ska.Shell._NullFile.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Ska/Shell/shell.html#_NullFile.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell._NullFile.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Ska.Shell._NullFile.flush">
+<code class="sig-name descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/Ska/Shell/shell.html#_NullFile.flush"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell._NullFile.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Ska.Shell._NullFile.write">
+<code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Ska/Shell/shell.html#_NullFile.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell._NullFile.write" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Ska.Shell._NullFile.writelines">
+<code class="sig-name descname">writelines</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lines</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/Ska/Shell/shell.html#_NullFile.writelines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Ska.Shell._NullFile.writelines" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
