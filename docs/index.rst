@@ -11,12 +11,6 @@ Welcome to Ska.Shell's documentation!
 Functions
 ----------
 
-.. autofunction:: _fix_paths
-
-.. autofunction:: _parse_keyvals
-
-.. autofunction:: _sendline_expect_func
-
 .. autofunction:: bash
 
 .. autofunction:: bash_shell
@@ -36,13 +30,6 @@ Classes
 --------
 
 .. autoclass:: Spawn
-   :show-inheritance:
-   :members:
-   :inherited-members:
-   :undoc-members:
-
-
-.. autoclass:: _NullFile
    :show-inheritance:
    :members:
    :inherited-members:
