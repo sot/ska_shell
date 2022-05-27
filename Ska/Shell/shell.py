@@ -73,7 +73,7 @@ def _parse_keyvals(keyvals):
     re_keyval = re.compile(r'([\w_]+) \s* = \s* (.*)', re.VERBOSE)
     keyvalout = {}
     for keyval in keyvals:
-        m = re.search(re_keyval, keyval.strip())
+        m = re.match(re_keyval, keyval.rstrip())
         if m:
             key, val = m.groups()
             keyvalout[key] = val
