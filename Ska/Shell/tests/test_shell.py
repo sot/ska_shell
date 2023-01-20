@@ -2,7 +2,7 @@
 import os
 import pytest
 from six.moves import cStringIO as StringIO
-from Ska.Shell import (Spawn, RunTimeoutError, bash, tcsh, getenv, importenv,
+from ska_shell import (Spawn, RunTimeoutError, bash, tcsh, getenv, importenv,
                        tcsh_shell, bash_shell)
 
 HAS_HEAD_CIAO = os.path.exists('/soft/ciao/bin/ciao.sh')
@@ -10,7 +10,7 @@ HAS_HEAD_CIAO = os.path.exists('/soft/ciao/bin/ciao.sh')
 outfile = 'ska_shell_test.dat'
 
 # Skip the entire test suite on Windows
-pytestmark = pytest.mark.skipif(os.name == 'nt', reason='Ska.Shell not supported on Windows')
+pytestmark = pytest.mark.skipif(os.name == 'nt', reason='ska_shell not supported on Windows')
 
 
 class TestSpawn:

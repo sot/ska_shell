@@ -1,12 +1,12 @@
-.. Ska.Shell documentation master file, created by
+.. ska_shell documentation master file, created by
    sphinx-quickstart on Thu May 23 10:58:30 2013.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Ska.Shell's documentation!
+Welcome to ska_shell's documentation!
 =====================================
 
-.. automodule:: Ska.Shell
+.. automodule:: ska_shell
 
 Functions
 ----------
