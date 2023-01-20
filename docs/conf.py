@@ -100,8 +100,8 @@ pygments_style = 'sphinx'
 html_theme = 'bootstrap-ska'
 html_theme_options = {
     'logotext1': 'Ska!' ,
-    'logotext2': 'Ska',
-    'logotext3': '.Shell',
+    'logotext2': 'ska_shell',
+    'logotext3': '',
     'homepage_url': 'https://cxc.cfa.harvard.edu/mta/ASPECT/tool_doc',
     'homepage_text': 'ska',
     'homepage_text_2': 'tools'
