@@ -320,7 +320,7 @@ class Spawn(object):
 
     Example usage:
 
-      >>> from Ska.Shell import Spawn, bash, getenv, importenv
+      >>> from ska_shell import Spawn, bash, getenv, importenv
       >>>
       >>> spawn = Spawn()
       >>> status = spawn.run(['echo', 'hello'])

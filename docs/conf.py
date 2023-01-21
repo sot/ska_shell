@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Ska.Shell documentation build configuration file, created by
+# ska_shell documentation build configuration file, created by
 # sphinx-quickstart on Thu May 23 10:58:30 2013.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -46,7 +46,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Ska.Shell'
+project = u'ska_shell'
 copyright = u'2013, Tom Aldcroft'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -100,8 +100,8 @@ pygments_style = 'sphinx'
 html_theme = 'bootstrap-ska'
 html_theme_options = {
     'logotext1': 'Ska!' ,
-    'logotext2': 'Ska',
-    'logotext3': '.Shell',
+    'logotext2': 'ska_shell',
+    'logotext3': '',
     'homepage_url': 'https://cxc.cfa.harvard.edu/mta/ASPECT/tool_doc',
     'homepage_text': 'ska',
     'homepage_text_2': 'tools'
@@ -197,7 +197,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'SkaShell.tex', u'Ska.Shell Documentation',
+  ('index', 'SkaShell.tex', u'ska_shell Documentation',
    u'Tom Aldcroft', 'manual'),
 ]
 
@@ -227,7 +227,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'skashell', u'Ska.Shell Documentation',
+    ('index', 'skashell', u'ska_shell Documentation',
      [u'Tom Aldcroft'], 1)
 ]
 
@@ -241,7 +241,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'SkaShell', u'Ska.Shell Documentation',
+  ('index', 'SkaShell', u'ska_shell Documentation',
    u'Tom Aldcroft', 'SkaShell', 'One line description of project.',
    'Miscellaneous'),
 ]
