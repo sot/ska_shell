@@ -14,7 +14,7 @@ pytestmark = pytest.mark.skipif(os.name == 'nt', reason='ska_shell not supported
 
 
 class TestSpawn:
-    def setup(self):
+    def setup_method(self):
         self.f = StringIO()
         self.g = StringIO()
 
