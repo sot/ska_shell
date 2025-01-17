@@ -275,8 +275,38 @@ def getenv(cmdstr, shell='bash', importenv=False, env=None):
 
     :returns: Dict of environment vars update produced by ``cmdstr``
     """
+    environ = dict(os.environ)
+    if env is not None:
+        environ.update(env)
 
-    outlines, newenv = run_shell(cmdstr, shell=shell, importenv=importenv, env=env, getenv=True)
+    p = subprocess.run(["which", shell], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if p.returncode:
+        raise Exception(f'Failed to find "{shell}" shell: {p.stderr.decode()}')
+    shell = p.stdout.decode().strip()
+    p = subprocess.run(
+        f"{cmdstr} && printenv",
+        shell=True,
+        executable=shell,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=environ,
+    )
+    if p.returncode:
+        raise Exception(f"Failed to get environment: {p.stderr.decode().strip()}")
+    newenv = _parse_keyvals(p.stdout.decode().split("\n"))
+
+    # Update os.environ based on changes to environment made by cmdstr
+    deltaenv = dict()
+    if importenv:
+        expected_diff_set = set(('PS1', 'PS2', '_', 'SHLVL')) if shell == 'bash' else set()
+        currenv = dict(os.environ)
+        _fix_paths(newenv)
+        for key in set(newenv) - expected_diff_set:
+            if key not in currenv or currenv[key] != newenv[key]:
+                deltaenv[key] = newenv[key]
+        if importenv:
+            os.environ.update(deltaenv)
+
     return newenv
 
 
