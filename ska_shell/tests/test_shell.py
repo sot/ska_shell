@@ -6,6 +6,7 @@ from ska_shell import (Spawn, RunTimeoutError, bash, tcsh, getenv, importenv,
                        tcsh_shell, bash_shell)
 
 HAS_HEAD_CIAO = os.path.exists('/soft/ciao/bin/ciao.sh')
+HAS_HEAD_ASCDS = os.path.exists('/home/ascds/.ascrc')
 
 outfile = 'ska_shell_test.dat'
 
@@ -144,12 +145,14 @@ class TestTcsh:
         assert outlines[3] == 'line2'
         assert outlines[4].startswith('Tcsh')
 
+    @pytest.mark.skipif('not HAS_HEAD_ASCDS', reason='Test requires /home/ascds/.ascrc')
     def test_ascds(self):
         envs = getenv('source /home/ascds/.ascrc -r release', shell='tcsh')
         test_script = ['printenv {}'.format(name) for name in sorted(envs)]
         outlines = tcsh('\n'.join(test_script), env=envs)
         assert outlines == [envs[name] for name in sorted(envs)]
 
+    @pytest.mark.skipif('not HAS_HEAD_CIAO', reason='Test requires /soft/ciao/bin/ciao.sh')
     def test_ciao(self):
         envs = getenv('source /soft/ciao/bin/ciao.csh', shell='tcsh')
         test_script = ['printenv {}'.format(name) for name in sorted(envs)]
