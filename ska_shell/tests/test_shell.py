@@ -6,6 +6,7 @@ from ska_shell import (Spawn, RunTimeoutError, bash, tcsh, getenv, importenv,
                        tcsh_shell, bash_shell)
 
 HAS_HEAD_CIAO = os.path.exists('/soft/ciao/bin/ciao.sh')
+HAS_HEAD_ASCDS = os.path.exists('/home/ascds/.ascrc')
 
 outfile = 'ska_shell_test.dat'
 
@@ -73,8 +74,22 @@ class TestBash:
     def test_env(self):
         envs = getenv('export TEST_ENV_VARA="hello"')
         assert envs['TEST_ENV_VARA'] == 'hello'
+        assert "TEST_ENV_VARA" not in os.environ
+
         outlines = bash('echo $TEST_ENV_VARA', env=envs)
         assert outlines == ['hello']
+
+        envs = getenv("echo", env={"TEST_ENV_VARA": "one"}, shell='bash')
+        assert envs['TEST_ENV_VARA'] == 'one'
+        assert "TEST_ENV_VARA" not in os.environ
+
+        envs = getenv("echo", env={"TEST_ENV_VARA": "two"}, shell='bash', importenv=True)
+        assert envs['TEST_ENV_VARA'] == 'two'
+        assert os.environ["TEST_ENV_VARA"] == 'two'
+
+        envs = getenv('export TEST_ENV_VARA="hello"', shell='bash', importenv=True)
+        assert envs['TEST_ENV_VARA'] == 'hello'
+        assert os.environ["TEST_ENV_VARA"] == 'hello'
 
     def test_promptenv(self):
         # Confirm that a messed up PS1 won't be a problem
@@ -124,8 +139,22 @@ class TestTcsh:
     def test_env(self):
         envs = getenv('setenv TEST_ENV_VAR2 "hello"', shell='tcsh')
         assert envs['TEST_ENV_VAR2'] == 'hello'
+        assert "TEST_ENV_VAR2" not in os.environ
+
         outlines = tcsh('echo $TEST_ENV_VAR2', env=envs)
         assert outlines == ['hello']
+
+        envs = getenv("echo", env={"TEST_ENV_VAR2": "one"}, shell='tcsh')
+        assert envs['TEST_ENV_VAR2'] == 'one'
+        assert "TEST_ENV_VAR2" not in os.environ
+
+        envs = getenv("echo", env={"TEST_ENV_VAR2": "two"}, shell='tcsh', importenv=True)
+        assert envs['TEST_ENV_VAR2'] == 'two'
+        assert os.environ["TEST_ENV_VAR2"] == 'two'
+
+        envs = getenv('setenv TEST_ENV_VAR2 "hello"', shell='tcsh', importenv=True)
+        assert envs['TEST_ENV_VAR2'] == 'hello'
+        assert os.environ["TEST_ENV_VAR2"] == 'hello'
 
     def test_importenv(self):
         importenv('setenv TEST_ENV_VAR3 "hello"', env={'TEST_ENV_VAR4': 'world'}, shell='tcsh')
@@ -144,12 +173,14 @@ class TestTcsh:
         assert outlines[3] == 'line2'
         assert outlines[4].startswith('Tcsh')
 
+    @pytest.mark.skipif('not HAS_HEAD_ASCDS', reason='Test requires /home/ascds/.ascrc')
     def test_ascds(self):
         envs = getenv('source /home/ascds/.ascrc -r release', shell='tcsh')
         test_script = ['printenv {}'.format(name) for name in sorted(envs)]
         outlines = tcsh('\n'.join(test_script), env=envs)
         assert outlines == [envs[name] for name in sorted(envs)]
 
+    @pytest.mark.skipif('not HAS_HEAD_CIAO', reason='Test requires /soft/ciao/bin/ciao.sh')
     def test_ciao(self):
         envs = getenv('source /soft/ciao/bin/ciao.csh', shell='tcsh')
         test_script = ['printenv {}'.format(name) for name in sorted(envs)]
