@@ -1,42 +1,18 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Utilities to run subprocesses"""
 
+import datetime
+import functools
+import logging
 import re
 import os
 import sys
 import signal
-import platform
 import subprocess
 
 
 class ShellError(Exception):
     pass
-
-# Give pexpect.spawn a new convenience method that sends a line and expects the prompt
-
-
-def _sendline_expect_func(prompt, n_skip=1):
-    """Returns a convenience method to monkey-patch into pexpect.spawn."""
-    def sendline_expect(self, cmd, quiet=False):
-        """Send a command and expect the given prompt.  Return the 'before' part"""
-        if quiet:
-            logfile_read = self.logfile_read
-            self.logfile_read = None
-
-        self.sendline(cmd)
-        self.expect(prompt)
-
-        if prompt.search(cmd):
-            self.expect(prompt)
-        if quiet:
-            self.logfile_read = logfile_read
-
-        return self.before.splitlines()[n_skip:]
-
-    return sendline_expect
-
-# See skare/install.py for the Template code that can do interpolation of all
-# shell ${var} variables for debug
 
 
 def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
@@ -73,59 +49,60 @@ def _parse_keyvals(keyvals):
     re_keyval = re.compile(r'([\w_]+) \s* = \s* (.*)', re.VERBOSE)
     keyvalout = {}
     for keyval in keyvals:
-        m = re.match(re_keyval, keyval.rstrip())
+        m = re.match(re_keyval, keyval)
         if m:
             key, val = m.groups()
             keyvalout[key] = val
     return keyvalout
 
 
-def _setup_bash_shell(logfile):
-    # Import pexpect here so that this the other (Spawn) part of this module
-    # doesn't depend on pexpect (which is not in the std library)
-    import pexpect
-    prompt1 = r'Bash-\t> '
-    prompt2 = r'Bash-\t- '
-    re_prompt = re.compile(r'Bash-\d\d:\d\d:\d\d([->]) ')
+def communicate(process, logfile=None, logger=None, log_level=None):
+    """
+    Real-time reading of a subprocess stdout.
 
-    pexpect.spawn.sendline_expect = _sendline_expect_func(re_prompt, n_skip=1)
+    Parameters
+    ----------
+    :param process: process returned by subprocess.Popen
+    :param logfile: append output to the suppplied file object
+    :param logger: log output to the supplied logging.Logger
+    :param log_level: log level for logger
+    """
+    log_level = "INFO" if log_level is None else log_level
+    log_level = getattr(logging, log_level) if type(log_level) is str else log_level
 
-    os.environ['PS1'] = prompt1
-    os.environ['PS2'] = prompt2
-    if platform.system() == 'Darwin':
-        os.environ['BASH_SILENCE_DEPRECATION_WARNING'] = '1'
-    spawn = pexpect.spawnu
-    shell = spawn('/bin/bash --noprofile --norc --noediting', timeout=1e8)
-    shell.logfile_read = logfile
-    shell.expect(re_prompt)
+    lines = []
+    while True:
+        if process.poll() is not None:
+            break
+        line = process.stdout.readline()
+        line = line.decode() if isinstance(line, bytes) else line
+        if line:
+            if logfile:
+                logfile.write(line)
+            if logger is not None:
+                logger.log(log_level, line[:-1])
+            lines.append(line[:-1])
 
-    return shell, re_prompt
+    # in case the buffer is still not empty after the process ended
+    for line in process.stdout.readlines():
+        line = line.decode() if isinstance(line, bytes) else line
+        if line:
+            if logfile:
+                logfile.write(line)
+            if logger is not None:
+                logger.log(log_level, line[:-1])
+            lines.append(line[:-1])
 
-
-def _setup_tcsh_shell(logfile):
-    import pexpect
-    prompt = r'Tcsh-%P> '
-    prompt2 = r'Tcsh-%P- '
-    re_prompt = re.compile(r'Tcsh-(\d)?\d:\d\d:\d\d([->]) ')
-
-    # Tcsh puts an extra \r after the original command, which turns in an extra
-    # line that needs to be skipped.
-    pexpect.spawn.sendline_expect = _sendline_expect_func(re_prompt, n_skip=2)
-
-    spawn = pexpect.spawnu
-    shell = spawn('/bin/tcsh -f', timeout=1e8)
-
-    shell.sendline('set prompt="{}"'.format(prompt))
-    shell.expect(re_prompt)
-    shell.sendline('set prompt2="{}"'.format(prompt2))
-    shell.expect(prompt2)
-    shell.logfile_read = logfile
-    shell.expect(re_prompt)
-
-    return shell, re_prompt
+    return lines
 
 
-def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False, env=None):
+@functools.cache
+def _shell_ok(shell):
+    p = subprocess.run(["which", shell], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return p.returncode == 0
+
+
+def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False, env=None, logger=None, log_level=None):
     """
     Run the command string ``cmdstr`` in a ``shell`` ('bash' or 'tcsh').  It can have
     multiple lines.  Each line is separately sent to the shell.  The exit status is
@@ -141,55 +118,47 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
 
     :rtype: (outlines, deltaenv)
     """
-    shell_name = shell
-    if shell_name == 'bash':
-        setup_shell_func = _setup_bash_shell
-    elif shell_name == 'tcsh':
-        setup_shell_func = _setup_tcsh_shell
-    else:
-        raise ValueError("shell argument must be 'bash' or 'tcsh'")
+    environ = dict(os.environ)
+    if env is not None:
+        environ.update(env)
 
-    shell, re_prompt = setup_shell_func(logfile)
-    shell.delaybeforesend = 0.0
+    if not _shell_ok(shell):
+        raise Exception(f'Failed to find "{shell}" shell')
 
-    if env:
-        exclude_vars = []
-        if shell_name == 'bash':
-            setenv_str = "export %s='%s'"
-            exclude_vars = ['PS1', 'PS2', 'PS3', 'PS4', 'PROMPT_COMMAND']
-        else:
-            setenv_str = "setenv %s '%s'"
-            exclude_vars = ['PROMPT', 'PROMPT2']
-        for key, val in env.items():
-            if key not in exclude_vars:
-                # Would be better to properly escape any shell characters.
-                shell.sendline_expect(setenv_str % (key, val))
+    if importenv or getenv:
+        cmdstr += " && echo __PRINTENV__ && printenv"
 
-    shell.delaybeforesend = 0.01
-    outlines = []
-    for line in cmdstr.splitlines():
-        outlines += shell.sendline_expect(line)
+    proc = subprocess.Popen(
+        [cmdstr],
+        executable=shell,
+        shell=True,
+        env=environ,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if logfile:
+        time = datetime.datetime.now().isoformat()[:22]
+        logfile.write(f"{shell.capitalize()}-{time}> {cmdstr}\n")
+    stdout = communicate(proc, logfile=logfile, logger=logger, log_level=log_level)
+    if logfile:
+        time = datetime.datetime.now().isoformat()[:22]
+        logfile.write(f"{shell.capitalize()}-{time}>\n")
+    if proc.returncode:
+        msg = " ".join(stdout[-1:])  # stdout could be empty
+        exc = ShellError(f"Shell error: {msg}")
+        exc.lines = stdout
+        raise exc
 
-        if re_prompt.match(shell.after).group(1) == '>':
-            try:
-                status_lines = shell.sendline_expect('echo $?', quiet=True)
-                exitstr = status_lines[0].strip()
-                exitstatus = int(exitstr)
-            except ValueError:
-                msg = ("Shell / expect got out of sync:\n" +
-                       "Response to 'echo $?' was apparently '%s'" % exitstr)
-                raise ShellError(msg)
-
-            if exitstatus > 0:
-                raise ShellError('Shell command %s failed with exit status %d'
-                                 % (cmdstr, exitstatus))
+    newenv = {}
+    if "__PRINTENV__" in stdout:
+        newenv = _parse_keyvals(stdout[stdout.index("__PRINTENV__") + 1:])
+        stdout = stdout[:stdout.index("__PRINTENV__")]
 
     # Update os.environ based on changes to environment made by cmdstr
     deltaenv = dict()
     if importenv or getenv:
-        expected_diff_set = set(('PS1', 'PS2', '_', 'SHLVL')) if shell_name == 'bash' else set()
+        expected_diff_set = set(('PS1', 'PS2', '_', 'SHLVL')) if shell in ['bash', "zsh"] else set()
         currenv = dict(os.environ)
-        newenv = _parse_keyvals(shell.sendline_expect("printenv", quiet=True))
         _fix_paths(newenv)
         for key in set(newenv) - expected_diff_set:
             if key not in currenv or currenv[key] != newenv[key]:
@@ -197,18 +166,10 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
         if importenv:
             os.environ.update(deltaenv)
 
-    shell.close()
-
-    # expect leaves a stray prompt when logging, so send a linefeed
-    if logfile:
-        logfile.write('\n')
-
-    return outlines, deltaenv
+    return stdout, deltaenv
 
 
-# Some convenience methods
-
-def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
+def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None, logger=None, log_level=None):
     """
     Run the command string ``cmdstr`` in a bash shell.  It can have
     multiple lines.  Each line is separately sent to the shell.  The exit status is
@@ -221,35 +182,41 @@ def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
     :param importenv: import any environent changes back to python env
     :param getenv: get the environent changes after running ``cmdstr``
     :param env: set environment using ``env`` dict prior to running commands
+    :param logger: log output to the supplied logging.Logger
+    :param log_level: log level for logger
 
     :rtype: (outlines, deltaenv)
     """
-    outlines, newenv = run_shell(cmdstr, shell='bash', logfile=logfile,
-                                 importenv=importenv, getenv=getenv, env=env)
+    outlines, newenv = run_shell(
+        cmdstr,
+        shell='bash',
+        logfile=logfile,
+        importenv=importenv,
+        getenv=getenv,
+         env=env,
+        logger=logger,
+        log_level=log_level
+    )
     return outlines, newenv
 
 
-def bash(cmdstr, logfile=None, importenv=False, env=None):
+def bash(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level=None):
     """Run the ``cmdstr`` string in a bash shell.  See ``run_shell`` for options.
 
     :returns: bash output
     """
-    outlines, newenv = run_shell(cmdstr, shell='bash', logfile=logfile,
-                                 importenv=importenv, env=env)
-    return outlines
+    return run_shell(cmdstr, shell='bash', logfile=logfile, importenv=importenv, env=env, logger=logger, log_level=log_level)[0]
 
 
-def tcsh(cmdstr, logfile=None, importenv=False, env=None):
+def tcsh(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level=None):
     """Run the ``cmdstr`` string in a tcsh shell.  See ``run_shell`` for options.
 
     :returns: tcsh output
     """
-    outlines, newenv = run_shell(cmdstr, shell='tcsh', logfile=logfile,
-                                 importenv=importenv, env=env)
-    return outlines
+    return run_shell(cmdstr, shell='tcsh', logfile=logfile, importenv=importenv, env=env, logger=logger, log_level=log_level)[0]
 
 
-def tcsh_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
+def tcsh_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None, logger=None, log_level=None):
     """
     Run the command string ``cmdstr`` in a tcsh shell.  It can have
     multiple lines.  Each line is separately sent to the shell.  The exit status is
@@ -262,11 +229,21 @@ def tcsh_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None):
     :param importenv: import any environent changes back to python env
     :param getenv: get the environent changes after running ``cmdstr``
     :param env: set environment using ``env`` dict prior to running commands
+    :param logger: log output to the supplied logging.Logger
+    :param log_level: log level for logger
 
     :rtype: (outlines, deltaenv)
     """
-    outlines, newenv = run_shell(cmdstr, shell='tcsh', logfile=logfile,
-                                 importenv=importenv, getenv=getenv, env=env)
+    outlines, newenv = run_shell(
+        cmdstr,
+        shell='tcsh',
+        logfile=logfile,
+        importenv=importenv,
+        getenv=getenv,
+         env=env,
+        logger=logger,
+        log_level=log_level
+    )
     return outlines, newenv
 
 
@@ -276,7 +253,7 @@ def getenv(cmdstr, shell='bash', importenv=False, env=None):
     :returns: Dict of environment vars update produced by ``cmdstr``
     """
 
-    outlines, newenv = run_shell(cmdstr, shell=shell, importenv=importenv, env=env, getenv=True)
+    _, newenv = run_shell(cmdstr, shell=shell, importenv=importenv, env=env, getenv=True)
     return newenv
 
 
@@ -286,8 +263,8 @@ def importenv(cmdstr, shell='bash', env=None):
 
     :returns: Dict of environment vars update produced by ``cmdstr``
     """
-    outlines, newenv = run_shell(cmdstr, importenv=True, env=env, shell=shell)
-    return newenv
+    return getenv(cmdstr, importenv=True, env=env, shell=shell)
+
 
 # Null file-like object.  Needed because pyfits spews warnings to stdout
 
