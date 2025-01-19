@@ -3,7 +3,7 @@ import os
 import pytest
 from six.moves import cStringIO as StringIO
 from ska_shell import (Spawn, RunTimeoutError, bash, tcsh, getenv, importenv,
-                       tcsh_shell, bash_shell)
+                       tcsh_shell, bash_shell, run_shell, ShellError)
 
 HAS_HEAD_CIAO = os.path.exists('/soft/ciao/bin/ciao.sh')
 HAS_HEAD_ASCDS = os.path.exists('/home/ascds/.ascrc')
@@ -186,3 +186,17 @@ class TestTcsh:
         test_script = ['printenv {}'.format(name) for name in sorted(envs)]
         outlines = tcsh('\n'.join(test_script), env=envs)
         assert outlines == [envs[name] for name in sorted(envs)]
+
+
+@pytest.mark.parametrize("shell", ["bash", "tcsh", "zsh"])
+def test_error(shell):
+    cmds = """
+    echo one
+    idonotexist
+    echo two
+    echo three
+    """
+    with pytest.raises(
+        ShellError, match="idonotexist.*[Cc]ommand not found|[Cc]ommand not found.*idonotexist"
+    ):
+        run_shell(cmds, shell=shell)
