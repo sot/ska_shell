@@ -175,9 +175,8 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
 def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None, logger=None, log_level=None):
     """
     Run the command string ``cmdstr`` in a bash shell.  It can have
-    multiple lines.  Each line is separately sent to the shell.  The exit status is
-    checked if the shell comes back with a prompt. If exit status is non-zero at any point
-    then processing is terminated and a ``ShellError`` exception is raise.
+    multiple lines. If exit status is non-zero at any point
+    then processing is terminated and a ``ShellError`` exception is raised.
 
     :param cmdstr: command string
     :param shell: shell for command -- 'bash' (default) or 'tcsh'
@@ -222,9 +221,8 @@ def tcsh(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level
 def tcsh_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None, logger=None, log_level=None):
     """
     Run the command string ``cmdstr`` in a tcsh shell.  It can have
-    multiple lines.  Each line is separately sent to the shell.  The exit status is
-    checked if the shell comes back with a prompt. If exit status is non-zero at any point
-    then processing is terminated and a ``ShellError`` exception is raise.
+    multiple lines. If exit status is non-zero at any point
+    then processing is terminated and a ``ShellError`` exception is raised.
 
     :param cmdstr: command string
     :param shell: shell for command -- 'bash' (default) or 'tcsh'
