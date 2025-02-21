@@ -135,6 +135,7 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
     # all lines are joined so the shell exits at the first failure
     cmdstr = " && ".join([c for c in cmdstr.splitlines() if c.strip()])
 
+    # make sure the RC file is not sourced
     if shell in ["tcsh", "csh"]:
         cmdstr = f"{shell} -f -c '{cmdstr}'"
         shell = "bash"
