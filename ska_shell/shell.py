@@ -15,6 +15,10 @@ class ShellError(Exception):
     pass
 
 
+class NonZeroReturnCode(ShellError):
+    pass
+
+
 def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
                                'LD_LIBRARY_PATH', 'MANPATH', 'INFOPATH')):
     """For the specified env vars that represent a search path, make sure that the
@@ -148,7 +152,7 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
         logfile.write(f"{shell.capitalize()}-{time}>\n")
     if proc.returncode:
         msg = " ".join(stdout[-1:])  # stdout could be empty
-        exc = ShellError(f"Shell error: {msg}")
+        exc = NonZeroReturnCode(f"Shell error: {msg}")
         exc.lines = stdout
         raise exc
 
