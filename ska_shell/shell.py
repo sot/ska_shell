@@ -135,6 +135,10 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
     # all lines are joined so the shell exits at the first failure
     cmdstr = " && ".join([c for c in cmdstr.splitlines() if c.strip()])
 
+    if shell in ["tcsh", "csh"]:
+        shell = "bash"
+        cmdstr = f"{shell} -f -c '{cmdstr}'"
+
     proc = subprocess.Popen(
         [cmdstr],
         executable=shell,
