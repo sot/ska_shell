@@ -136,8 +136,8 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
     cmdstr = " && ".join([c for c in cmdstr.splitlines() if c.strip()])
 
     if shell in ["tcsh", "csh"]:
-        shell = "bash"
         cmdstr = f"{shell} -f -c '{cmdstr}'"
+        shell = "bash"
 
     proc = subprocess.Popen(
         [cmdstr],
