@@ -19,8 +19,18 @@ class NonZeroReturnCode(ShellError):
     pass
 
 
-def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
-                               'LD_LIBRARY_PATH', 'MANPATH', 'INFOPATH')):
+def _fix_paths(
+    envs,
+    pathvars=(
+        "PATH",
+        "PERLLIB",
+        "PERL5LIB",
+        "PYTHONPATH",
+        "LD_LIBRARY_PATH",
+        "MANPATH",
+        "INFOPATH",
+    ),
+):
     """For the specified env vars that represent a search path, make sure that the
     paths are unique.  This allows the environment setting script to be lazy
     and not worry about it.  This routine gives the right-most path precedence
@@ -33,7 +43,7 @@ def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
 
     # Process env vars that are contained in the PATH_ENVS set
     for key in set(envs.keys()) & set(pathvars):
-        path_ins = envs[key].split(':')
+        path_ins = envs[key].split(":")
         pathset = set()
         path_outs = []
         # Working from right to left add each path that hasn't been included yet.
@@ -41,7 +51,7 @@ def _fix_paths(envs, pathvars=('PATH', 'PERLLIB', 'PERL5LIB', 'PYTHONPATH',
             if path not in pathset:
                 pathset.add(path)
                 path_outs.append(path)
-        envs[key] = ':'.join(reversed(path_outs))
+        envs[key] = ":".join(reversed(path_outs))
 
 
 def _parse_keyvals(keyvals):
@@ -50,7 +60,7 @@ def _parse_keyvals(keyvals):
     :param keyvals: Newline-separated string with key=val pairs
     :rtype: Dict of key=val pairs.
     """
-    re_keyval = re.compile(r'([\w_]+) \s* = \s* (.*)', re.VERBOSE)
+    re_keyval = re.compile(r"([\w_]+) \s* = \s* (.*)", re.VERBOSE)
     keyvalout = {}
     for keyval in keyvals:
         m = re.match(re_keyval, keyval)
@@ -106,7 +116,16 @@ def _shell_ok(shell):
     return p.returncode == 0
 
 
-def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False, env=None, logger=None, log_level=None):
+def run_shell(
+    cmdstr,
+    shell="bash",
+    logfile=None,
+    importenv=False,
+    getenv=False,
+    env=None,
+    logger=None,
+    log_level=None,
+):
     """
     Run the command string ``cmdstr`` in a ``shell`` ('bash' or 'tcsh').  It can have
     multiple lines.  Each line is separately sent to the shell.  The exit status is
@@ -163,13 +182,15 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
 
     newenv = {}
     if "__PRINTENV__" in stdout:
-        newenv = _parse_keyvals(stdout[stdout.index("__PRINTENV__") + 1:])
-        stdout = stdout[:stdout.index("__PRINTENV__")]
+        newenv = _parse_keyvals(stdout[stdout.index("__PRINTENV__") + 1 :])
+        stdout = stdout[: stdout.index("__PRINTENV__")]
 
     # Update os.environ based on changes to environment made by cmdstr
     deltaenv = dict()
     if importenv or getenv:
-        expected_diff_set = set(('PS1', 'PS2', '_', 'SHLVL')) if shell in ['bash', "zsh"] else set()
+        expected_diff_set = (
+            set(("PS1", "PS2", "_", "SHLVL")) if shell in ["bash", "zsh"] else set()
+        )
         currenv = dict(os.environ)
         _fix_paths(newenv)
         for key in set(newenv) - expected_diff_set:
@@ -181,7 +202,15 @@ def run_shell(cmdstr, shell='bash', logfile=None, importenv=False, getenv=False,
     return stdout, deltaenv
 
 
-def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None, logger=None, log_level=None):
+def bash_shell(
+    cmdstr,
+    logfile=None,
+    importenv=False,
+    getenv=False,
+    env=None,
+    logger=None,
+    log_level=None,
+):
     """
     Run the command string ``cmdstr`` in a bash shell.  It can have
     multiple lines. If exit status is non-zero at any point
@@ -200,13 +229,13 @@ def bash_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None, lo
     """
     outlines, newenv = run_shell(
         cmdstr,
-        shell='bash',
+        shell="bash",
         logfile=logfile,
         importenv=importenv,
         getenv=getenv,
-         env=env,
+        env=env,
         logger=logger,
-        log_level=log_level
+        log_level=log_level,
     )
     return outlines, newenv
 
@@ -216,7 +245,15 @@ def bash(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level
 
     :returns: bash output
     """
-    return run_shell(cmdstr, shell='bash', logfile=logfile, importenv=importenv, env=env, logger=logger, log_level=log_level)[0]
+    return run_shell(
+        cmdstr,
+        shell="bash",
+        logfile=logfile,
+        importenv=importenv,
+        env=env,
+        logger=logger,
+        log_level=log_level,
+    )[0]
 
 
 def tcsh(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level=None):
@@ -224,10 +261,26 @@ def tcsh(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level
 
     :returns: tcsh output
     """
-    return run_shell(cmdstr, shell='tcsh', logfile=logfile, importenv=importenv, env=env, logger=logger, log_level=log_level)[0]
+    return run_shell(
+        cmdstr,
+        shell="tcsh",
+        logfile=logfile,
+        importenv=importenv,
+        env=env,
+        logger=logger,
+        log_level=log_level,
+    )[0]
 
 
-def tcsh_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None, logger=None, log_level=None):
+def tcsh_shell(
+    cmdstr,
+    logfile=None,
+    importenv=False,
+    getenv=False,
+    env=None,
+    logger=None,
+    log_level=None,
+):
     """
     Run the command string ``cmdstr`` in a tcsh shell.  It can have
     multiple lines. If exit status is non-zero at any point
@@ -246,28 +299,30 @@ def tcsh_shell(cmdstr, logfile=None, importenv=False, getenv=False, env=None, lo
     """
     outlines, newenv = run_shell(
         cmdstr,
-        shell='tcsh',
+        shell="tcsh",
         logfile=logfile,
         importenv=importenv,
         getenv=getenv,
-         env=env,
+        env=env,
         logger=logger,
-        log_level=log_level
+        log_level=log_level,
     )
     return outlines, newenv
 
 
-def getenv(cmdstr, shell='bash', importenv=False, env=None):
+def getenv(cmdstr, shell="bash", importenv=False, env=None):
     """Run the ``cmdstr`` string in ``shell``.  See ``run_shell`` for options.
 
     :returns: Dict of environment vars update produced by ``cmdstr``
     """
 
-    _, newenv = run_shell(cmdstr, shell=shell, importenv=importenv, env=env, getenv=True)
+    _, newenv = run_shell(
+        cmdstr, shell=shell, importenv=importenv, env=env, getenv=True
+    )
     return newenv
 
 
-def importenv(cmdstr, shell='bash', env=None):
+def importenv(cmdstr, shell="bash", env=None):
     """Run ``cmdstr`` in a bash shell and import the environment updates into the
     current python environment (os.environ).  See ``bash_shell`` for options.
 
@@ -344,27 +399,39 @@ class Spawn(object):
      - openfiles: List of file objects created during init corresponding
                   to filenames supplied in ``outputs`` list
     """
+
     def _open_for_write(self, f):
         """Return a file object for writing for ``f``, which may be nothing, a file
         name, or a file-like object."""
         if not f:
             return _NullFile()
         # Else see if it is a single file-like object
-        elif hasattr(f, 'write') and hasattr(f, 'close'):
+        elif hasattr(f, "write") and hasattr(f, "close"):
             return f
         else:
-            openfile = open(f, 'w', 1)  # raises TypeError if f is not suitable
-            self.openfiles.append(openfile)  # Store open file objects created by this object
+            openfile = open(f, "w", 1)  # raises TypeError if f is not suitable
+            self.openfiles.append(
+                openfile
+            )  # Store open file objects created by this object
             return openfile
 
     @staticmethod
     def _timeout_handler(pid, timeout):
         def handler(signum, frame):
-            raise RunTimeoutError('Process pid=%d timed out after %d secs' % (pid, timeout))
+            raise RunTimeoutError(
+                "Process pid=%d timed out after %d secs" % (pid, timeout)
+            )
+
         return handler
 
-    def __init__(self, stdout=sys.stdout, timeout=None, catch=False,
-                 stderr=subprocess.STDOUT, shell=False):
+    def __init__(
+        self,
+        stdout=sys.stdout,
+        timeout=None,
+        catch=False,
+        stderr=subprocess.STDOUT,
+        shell=False,
+    ):
         """Create a Spawn object to run shell processes in a controlled way.
 
         :param stdout: destination(s) for process stdout.  Can be None, a file name,
@@ -382,7 +449,7 @@ class Spawn(object):
         self.catch = catch
         self.stderr = stderr
         self.shell = shell
-        self.openfiles = []             # Newly opened file objects for stdout
+        self.openfiles = []  # Newly opened file objects for stdout
 
         # stdout can be None, <file>, 'filename', or sequence(..) of these
         try:
@@ -425,11 +492,17 @@ class Spawn(object):
         self.exitstatus = None
 
         try:
-            self.process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=stderr, shell=shell,
-                                            universal_newlines=True)
+            self.process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=stderr,
+                shell=shell,
+                universal_newlines=True,
+            )
 
-            prev_alarm_handler = signal.signal(signal.SIGALRM,
-                                               Spawn._timeout_handler(self.process.pid, timeout))
+            prev_alarm_handler = signal.signal(
+                signal.SIGALRM, Spawn._timeout_handler(self.process.pid, timeout)
+            )
             signal.alarm(self.timeout)
             for line in self.process.stdout:
                 self._write(line)
@@ -440,13 +513,13 @@ class Spawn(object):
 
         except RunTimeoutError as e:
             if catch:
-                self._write('Warning - RunTimeoutError: %s\n' % e)
+                self._write("Warning - RunTimeoutError: %s\n" % e)
             else:
                 raise
 
         except OSError as e:
             if catch:
-                self._write('Warning - OSError: %s\n' % e)
+                self._write("Warning - OSError: %s\n" % e)
             else:
                 raise
 
