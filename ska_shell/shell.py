@@ -125,6 +125,7 @@ def run_shell(
     env=None,
     logger=None,
     log_level=None,
+    check=None,
 ):
     """
     Run the command string ``cmdstr`` in a ``shell`` ('bash' or 'tcsh').  It can have
@@ -138,9 +139,12 @@ def run_shell(
     :param importenv: import any environent changes back to python env
     :param getenv: get the environent changes after running ``cmdstr``
     :param env: set environment using ``env`` dict prior to running commands
+    :param check: raise an exception if any command fails
 
     :rtype: (outlines, deltaenv)
     """
+    check = check if check is not None else True
+
     environ = dict(os.environ)
     if env is not None:
         environ.update(env)
@@ -154,10 +158,12 @@ def run_shell(
     # all lines are joined so the shell exits at the first failure
     cmdstr = " && ".join([c for c in cmdstr.splitlines() if c.strip()])
 
-    # make sure the RC file is not sourced
+    # make sure the RC file is not sourced in csh (option -f) and abort on error (option -e)
     if shell in ["tcsh", "csh"]:
-        cmdstr = f"{shell} -f -c '{cmdstr}'"
+        cmdstr = f"{shell} {'-e' if check else ''} -f -c '{cmdstr}'"
         shell = "bash"
+    elif shell in ["bash", "zsh"] and check:
+        cmdstr = f"set -e; {cmdstr}"
 
     proc = subprocess.Popen(
         [cmdstr],
@@ -174,7 +180,7 @@ def run_shell(
     if logfile:
         time = datetime.datetime.now().isoformat()[:22]
         logfile.write(f"{shell.capitalize()}-{time}>\n")
-    if proc.returncode:
+    if check and proc.returncode:
         msg = " ".join(stdout[-1:])  # stdout could be empty
         exc = NonZeroReturnCode(f"Shell error: {msg}")
         exc.lines = stdout
@@ -210,6 +216,7 @@ def bash_shell(
     env=None,
     logger=None,
     log_level=None,
+    check=None
 ):
     """
     Run the command string ``cmdstr`` in a bash shell.  It can have
@@ -236,11 +243,12 @@ def bash_shell(
         env=env,
         logger=logger,
         log_level=log_level,
+        check=check,
     )
     return outlines, newenv
 
 
-def bash(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level=None):
+def bash(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level=None, check=None):
     """Run the ``cmdstr`` string in a bash shell.  See ``run_shell`` for options.
 
     :returns: bash output
@@ -253,10 +261,11 @@ def bash(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level
         env=env,
         logger=logger,
         log_level=log_level,
+        check=check,
     )[0]
 
 
-def tcsh(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level=None):
+def tcsh(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level=None, check=None):
     """Run the ``cmdstr`` string in a tcsh shell.  See ``run_shell`` for options.
 
     :returns: tcsh output
@@ -269,6 +278,7 @@ def tcsh(cmdstr, logfile=None, importenv=False, env=None, logger=None, log_level
         env=env,
         logger=logger,
         log_level=log_level,
+        check=check,
     )[0]
 
 
@@ -280,6 +290,7 @@ def tcsh_shell(
     env=None,
     logger=None,
     log_level=None,
+    check=None,
 ):
     """
     Run the command string ``cmdstr`` in a tcsh shell.  It can have
@@ -306,6 +317,7 @@ def tcsh_shell(
         env=env,
         logger=logger,
         log_level=log_level,
+        check=check,
     )
     return outlines, newenv
 
@@ -317,7 +329,7 @@ def getenv(cmdstr, shell="bash", importenv=False, env=None):
     """
 
     _, newenv = run_shell(
-        cmdstr, shell=shell, importenv=importenv, env=env, getenv=True
+        cmdstr, shell=shell, importenv=importenv, env=env, getenv=True, check=False
     )
     return newenv
 

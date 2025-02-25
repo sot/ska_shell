@@ -5,6 +5,7 @@ import pytest
 from six.moves import cStringIO as StringIO
 
 from ska_shell import (
+    NonZeroReturnCode,
     RunTimeoutError,
     ShellError,
     Spawn,
@@ -143,6 +144,14 @@ class TestBash:
         outlines = bash("\n".join(test_script), env=envs)
         assert outlines == [envs[name] for name in sorted(envs)]
 
+    def test_check(self):
+        out = bash("lsd; echo DONE", check=False)
+        assert len(out) == 2
+        assert out[-1] == "DONE"
+
+        with pytest.raises(NonZeroReturnCode):
+            out = bash("lsd; echo DONE", check=True)
+
 
 class TestTcsh:
     def test_tcsh(self):
@@ -210,6 +219,14 @@ class TestTcsh:
         test_script = ["printenv {}".format(name) for name in sorted(envs)]
         outlines = tcsh("\n".join(test_script), env=envs)
         assert outlines == [envs[name] for name in sorted(envs)]
+
+    def test_check(self):
+        out = bash("lsd; echo DONE", check=False)
+        assert len(out) == 2
+        assert out[-1] == "DONE"
+
+        with pytest.raises(NonZeroReturnCode):
+            out = bash("lsd; echo DONE", check=True)
 
 
 @pytest.mark.parametrize("shell", ["bash", "tcsh", "zsh"])
