@@ -159,15 +159,17 @@ def run_shell(
     cmdstr = " && ".join([c for c in cmdstr.splitlines() if c.strip()])
 
     # make sure the RC file is not sourced in csh (option -f) and abort on error (option -e)
+    actual_shell = shell
+    actual_cmdstr = cmdstr
     if shell in ["tcsh", "csh"]:
-        cmdstr = f"{shell} {'-e' if check else ''} -f -c '{cmdstr}'"
-        shell = "bash"
+        actual_cmdstr = f"{shell} {'-e' if check else ''} -f -c '{actual_cmdstr}'"
+        actual_shell = "bash"
     elif shell in ["bash", "zsh"] and check:
-        cmdstr = f"set -e; {cmdstr}"
+        actual_cmdstr = f"set -e; {actual_cmdstr}"
 
     proc = subprocess.Popen(
-        [cmdstr],
-        executable=shell,
+        [actual_cmdstr],
+        executable=actual_shell,
         shell=True,
         env=environ,
         stdout=subprocess.PIPE,
@@ -195,7 +197,7 @@ def run_shell(
     deltaenv = dict()
     if importenv or getenv:
         expected_diff_set = (
-            set(("PS1", "PS2", "_", "SHLVL")) if shell in ["bash", "zsh"] else set()
+            set(("PS1", "PS2", "_", "SHLVL")) if actual_shell in ["bash", "zsh"] else set()
         )
         currenv = dict(os.environ)
         _fix_paths(newenv)
