@@ -230,7 +230,7 @@ class TestTcsh:
 
 
 @pytest.mark.parametrize("shell", ["bash", "tcsh", "zsh"])
-def test_error(shell):
+def test_err(shell):
     cmds = """
     echo one
     idonotexist
