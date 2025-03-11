@@ -16,7 +16,9 @@ class ShellError(Exception):
 
 
 class NonZeroReturnCode(ShellError):
-    pass
+    def __init__(self, msg, return_code):
+        super().__init__(msg)
+        self.return_code = return_code
 
 
 def _fix_paths(
@@ -184,7 +186,11 @@ def run_shell(
         logfile.write(f"{shell.capitalize()}-{time}>\n")
     if check and proc.returncode:
         msg = " ".join(stdout[-1:])  # stdout could be empty
-        exc = NonZeroReturnCode(f"Shell error: {msg}")
+        exc = NonZeroReturnCode(
+            f"Shell command failed with return_code={proc.returncode}: {msg}."
+            f"Command: {cmdstr}",
+            return_code=proc.returncode
+        )
         exc.lines = stdout
         raise exc
 
