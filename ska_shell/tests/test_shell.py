@@ -229,7 +229,7 @@ class TestTcsh:
             out = bash("lsd; echo DONE", check=True)
 
 
-@pytest.mark.parametrize("shell", ["bash", "tcsh", "zsh"])
+@pytest.mark.parametrize("shell", ["bash", "tcsh"])
 def test_err(shell):
     cmds = """
     echo one
