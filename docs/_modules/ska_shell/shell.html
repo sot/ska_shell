@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ska_shell.shell &#8212; ska_shell 0.3 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/bootstrap-astropy.css?v=f4f7060c" />
     
     <script src="../../_static/documentation_options.js?v=b489f392"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script type="text/javascript" src="../../_static/sidebar.js"></script>
     <script type="text/javascript" src="../../_static/copybutton.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -63,30 +63,34 @@
 <span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
 <span class="sd">&quot;&quot;&quot;Utilities to run subprocesses&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">datetime</span>
-<span class="kn">import</span> <span class="nn">functools</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">signal</span>
-<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pty</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">select</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">termios</span>
 
 
 <div class="viewcode-block" id="ShellError">
 <a class="viewcode-back" href="../../index.html#ska_shell.ShellError">[docs]</a>
-<span class="k">class</span> <span class="nc">ShellError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ShellError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="k">pass</span></div>
 
 
 
-<span class="k">class</span> <span class="nc">NonZeroReturnCode</span><span class="p">(</span><span class="n">ShellError</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">return_code</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NonZeroReturnCode</span><span class="p">(</span><span class="n">ShellError</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">return_code</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">return_code</span> <span class="o">=</span> <span class="n">return_code</span>
 
 
-<span class="k">def</span> <span class="nf">_fix_paths</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fix_paths</span><span class="p">(</span>
     <span class="n">envs</span><span class="p">,</span>
     <span class="n">pathvars</span><span class="o">=</span><span class="p">(</span>
         <span class="s2">&quot;PATH&quot;</span><span class="p">,</span>
@@ -121,7 +125,7 @@
         <span class="n">envs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;:&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">path_outs</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">_parse_keyvals</span><span class="p">(</span><span class="n">keyvals</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_keyvals</span><span class="p">(</span><span class="n">keyvals</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse the key=val pairs from the newline-separated string.</span>
 
 <span class="sd">    :param keyvals: Newline-separated string with key=val pairs</span>
@@ -137,7 +141,7 @@
     <span class="k">return</span> <span class="n">keyvalout</span>
 
 
-<span class="k">def</span> <span class="nf">communicate</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">communicate</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Real-time reading of a subprocess stdout.</span>
 
@@ -177,15 +181,78 @@
     <span class="k">return</span> <span class="n">lines</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_communicate_pty</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">master_fd</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Real-time reading of subprocess output from a pty master file descriptor.</span>
+
+<span class="sd">    Used when ``run_shell`` is invoked with ``unbuffered=True`` to avoid the</span>
+<span class="sd">    libc block-buffering that happens when the child&#39;s stdout is a pipe.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    :param process: process returned by subprocess.Popen</span>
+<span class="sd">    :param master_fd: pty master file descriptor to read from</span>
+<span class="sd">    :param logfile: append output to the supplied file object (flushed per line)</span>
+<span class="sd">    :param logger: log output to the supplied logging.Logger</span>
+<span class="sd">    :param log_level: log level for logger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">log_level</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span> <span class="k">if</span> <span class="n">log_level</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">log_level</span>
+    <span class="n">log_level</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">logging</span><span class="p">,</span> <span class="n">log_level</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">log_level</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">else</span> <span class="n">log_level</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_emit</span><span class="p">(</span><span class="n">raw_bytes</span><span class="p">):</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">raw_bytes</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">errors</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">logfile</span><span class="p">:</span>
+            <span class="n">logfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">logger</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">log_level</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_read_chunk</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">master_fd</span><span class="p">,</span> <span class="mi">4096</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EIO</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+            <span class="k">raise</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">r</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">select</span><span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="n">master_fd</span><span class="p">],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="mf">0.1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="p">:</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="n">_read_chunk</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">chunk</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">buf</span> <span class="o">+=</span> <span class="n">chunk</span>
+            <span class="k">while</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">buf</span><span class="p">:</span>
+                <span class="n">raw</span><span class="p">,</span> <span class="n">buf</span> <span class="o">=</span> <span class="n">buf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">_emit</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">process</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="n">_read_chunk</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">chunk</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">buf</span> <span class="o">+=</span> <span class="n">chunk</span>
+
+    <span class="k">while</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">buf</span><span class="p">:</span>
+        <span class="n">raw</span><span class="p">,</span> <span class="n">buf</span> <span class="o">=</span> <span class="n">buf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">_emit</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">buf</span><span class="p">:</span>
+        <span class="n">_emit</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">lines</span>
+
+
 <span class="nd">@functools</span><span class="o">.</span><span class="n">cache</span>
-<span class="k">def</span> <span class="nf">_shell_ok</span><span class="p">(</span><span class="n">shell</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_shell_ok</span><span class="p">(</span><span class="n">shell</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;which&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">0</span>
 
 
 <div class="viewcode-block" id="run_shell">
 <a class="viewcode-back" href="../../index.html#ska_shell.run_shell">[docs]</a>
-<span class="k">def</span> <span class="nf">run_shell</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_shell</span><span class="p">(</span>
     <span class="n">cmdstr</span><span class="p">,</span>
     <span class="n">shell</span><span class="o">=</span><span class="s2">&quot;bash&quot;</span><span class="p">,</span>
     <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -195,6 +262,7 @@
     <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">check</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">unbuffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run the command string ``cmdstr`` in a ``shell`` (&#39;bash&#39; or &#39;tcsh&#39;).  It can have</span>
@@ -209,6 +277,8 @@
 <span class="sd">    :param getenv: get the environent changes after running ``cmdstr``</span>
 <span class="sd">    :param env: set environment using ``env`` dict prior to running commands</span>
 <span class="sd">    :param check: raise an exception if any command fails</span>
+<span class="sd">    :param unbuffered: stream output in real time via a pty so ``logfile`` / ``logger``</span>
+<span class="sd">        see each line as it is produced instead of at process exit</span>
 
 <span class="sd">    :rtype: (outlines, deltaenv)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -236,21 +306,50 @@
     <span class="k">elif</span> <span class="n">shell</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;bash&quot;</span><span class="p">,</span> <span class="s2">&quot;zsh&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">check</span><span class="p">:</span>
         <span class="n">actual_cmdstr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;set -e; </span><span class="si">{</span><span class="n">actual_cmdstr</span><span class="si">}</span><span class="s2">&quot;</span>
 
-    <span class="n">proc</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">actual_cmdstr</span><span class="p">],</span>
-        <span class="n">executable</span><span class="o">=</span><span class="n">actual_shell</span><span class="p">,</span>
-        <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">env</span><span class="o">=</span><span class="n">environ</span><span class="p">,</span>
-        <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
-        <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="n">logfile</span><span class="p">:</span>
-        <span class="n">time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()[:</span><span class="mi">22</span><span class="p">]</span>
-        <span class="n">logfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shell</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">&gt; </span><span class="si">{</span><span class="n">cmdstr</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="n">stdout</span> <span class="o">=</span> <span class="n">communicate</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="n">logfile</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">logfile</span><span class="p">:</span>
-        <span class="n">time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()[:</span><span class="mi">22</span><span class="p">]</span>
-        <span class="n">logfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shell</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">unbuffered</span><span class="p">:</span>
+        <span class="n">master_fd</span><span class="p">,</span> <span class="n">slave_fd</span> <span class="o">=</span> <span class="n">pty</span><span class="o">.</span><span class="n">openpty</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="n">termios</span><span class="o">.</span><span class="n">tcgetattr</span><span class="p">(</span><span class="n">slave_fd</span><span class="p">)</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">termios</span><span class="o">.</span><span class="n">OPOST</span>
+            <span class="n">termios</span><span class="o">.</span><span class="n">tcsetattr</span><span class="p">(</span><span class="n">slave_fd</span><span class="p">,</span> <span class="n">termios</span><span class="o">.</span><span class="n">TCSANOW</span><span class="p">,</span> <span class="n">attrs</span><span class="p">)</span>
+            <span class="n">proc</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">actual_cmdstr</span><span class="p">],</span>
+                <span class="n">executable</span><span class="o">=</span><span class="n">actual_shell</span><span class="p">,</span>
+                <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">env</span><span class="o">=</span><span class="n">environ</span><span class="p">,</span>
+                <span class="n">stdout</span><span class="o">=</span><span class="n">slave_fd</span><span class="p">,</span>
+                <span class="n">stderr</span><span class="o">=</span><span class="n">slave_fd</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">slave_fd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">master_fd</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">proc</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">actual_cmdstr</span><span class="p">],</span>
+            <span class="n">executable</span><span class="o">=</span><span class="n">actual_shell</span><span class="p">,</span>
+            <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">env</span><span class="o">=</span><span class="n">environ</span><span class="p">,</span>
+            <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+            <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">logfile</span><span class="p">:</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()[:</span><span class="mi">22</span><span class="p">]</span>
+            <span class="n">logfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shell</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">&gt; </span><span class="si">{</span><span class="n">cmdstr</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">master_fd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">communicate</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="n">logfile</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">_communicate_pty</span><span class="p">(</span>
+                <span class="n">proc</span><span class="p">,</span> <span class="n">master_fd</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="n">logfile</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">logfile</span><span class="p">:</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()[:</span><span class="mi">22</span><span class="p">]</span>
+            <span class="n">logfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shell</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2">&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">master_fd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">master_fd</span><span class="p">)</span>
+        <span class="n">proc</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">check</span> <span class="ow">and</span> <span class="n">proc</span><span class="o">.</span><span class="n">returncode</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stdout</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:])</span>  <span class="c1"># stdout could be empty</span>
         <span class="n">exc</span> <span class="o">=</span> <span class="n">NonZeroReturnCode</span><span class="p">(</span>
@@ -286,7 +385,7 @@
 
 <div class="viewcode-block" id="bash_shell">
 <a class="viewcode-back" href="../../index.html#ska_shell.bash_shell">[docs]</a>
-<span class="k">def</span> <span class="nf">bash_shell</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bash_shell</span><span class="p">(</span>
     <span class="n">cmdstr</span><span class="p">,</span>
     <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">importenv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -294,7 +393,8 @@
     <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">check</span><span class="o">=</span><span class="kc">None</span>
+    <span class="n">check</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">unbuffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run the command string ``cmdstr`` in a bash shell.  It can have</span>
@@ -309,6 +409,7 @@
 <span class="sd">    :param env: set environment using ``env`` dict prior to running commands</span>
 <span class="sd">    :param logger: log output to the supplied logging.Logger</span>
 <span class="sd">    :param log_level: log level for logger</span>
+<span class="sd">    :param unbuffered: stream output in real time via a pty</span>
 
 <span class="sd">    :rtype: (outlines, deltaenv)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -322,6 +423,7 @@
         <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
         <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
         <span class="n">check</span><span class="o">=</span><span class="n">check</span><span class="p">,</span>
+        <span class="n">unbuffered</span><span class="o">=</span><span class="n">unbuffered</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">outlines</span><span class="p">,</span> <span class="n">newenv</span></div>
 
@@ -329,7 +431,16 @@
 
 <div class="viewcode-block" id="bash">
 <a class="viewcode-back" href="../../index.html#ska_shell.bash">[docs]</a>
-<span class="k">def</span> <span class="nf">bash</span><span class="p">(</span><span class="n">cmdstr</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">importenv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bash</span><span class="p">(</span>
+    <span class="n">cmdstr</span><span class="p">,</span>
+    <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">importenv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">check</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">unbuffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the ``cmdstr`` string in a bash shell.  See ``run_shell`` for options.</span>
 
 <span class="sd">    :returns: bash output</span>
@@ -343,13 +454,23 @@
         <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
         <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
         <span class="n">check</span><span class="o">=</span><span class="n">check</span><span class="p">,</span>
+        <span class="n">unbuffered</span><span class="o">=</span><span class="n">unbuffered</span><span class="p">,</span>
     <span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 
 <div class="viewcode-block" id="tcsh">
 <a class="viewcode-back" href="../../index.html#ska_shell.tcsh">[docs]</a>
-<span class="k">def</span> <span class="nf">tcsh</span><span class="p">(</span><span class="n">cmdstr</span><span class="p">,</span> <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">importenv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">tcsh</span><span class="p">(</span>
+    <span class="n">cmdstr</span><span class="p">,</span>
+    <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">importenv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">check</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">unbuffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the ``cmdstr`` string in a tcsh shell.  See ``run_shell`` for options.</span>
 
 <span class="sd">    :returns: tcsh output</span>
@@ -363,13 +484,14 @@
         <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
         <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
         <span class="n">check</span><span class="o">=</span><span class="n">check</span><span class="p">,</span>
+        <span class="n">unbuffered</span><span class="o">=</span><span class="n">unbuffered</span><span class="p">,</span>
     <span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 
 <div class="viewcode-block" id="tcsh_shell">
 <a class="viewcode-back" href="../../index.html#ska_shell.tcsh_shell">[docs]</a>
-<span class="k">def</span> <span class="nf">tcsh_shell</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">tcsh_shell</span><span class="p">(</span>
     <span class="n">cmdstr</span><span class="p">,</span>
     <span class="n">logfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">importenv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -378,6 +500,7 @@
     <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">check</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">unbuffered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run the command string ``cmdstr`` in a tcsh shell.  It can have</span>
@@ -392,6 +515,7 @@
 <span class="sd">    :param env: set environment using ``env`` dict prior to running commands</span>
 <span class="sd">    :param logger: log output to the supplied logging.Logger</span>
 <span class="sd">    :param log_level: log level for logger</span>
+<span class="sd">    :param unbuffered: stream output in real time via a pty</span>
 
 <span class="sd">    :rtype: (outlines, deltaenv)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -405,6 +529,7 @@
         <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
         <span class="n">log_level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
         <span class="n">check</span><span class="o">=</span><span class="n">check</span><span class="p">,</span>
+        <span class="n">unbuffered</span><span class="o">=</span><span class="n">unbuffered</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">outlines</span><span class="p">,</span> <span class="n">newenv</span></div>
 
@@ -412,7 +537,7 @@
 
 <div class="viewcode-block" id="getenv">
 <a class="viewcode-back" href="../../index.html#ska_shell.getenv">[docs]</a>
-<span class="k">def</span> <span class="nf">getenv</span><span class="p">(</span><span class="n">cmdstr</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="s2">&quot;bash&quot;</span><span class="p">,</span> <span class="n">importenv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">getenv</span><span class="p">(</span><span class="n">cmdstr</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="s2">&quot;bash&quot;</span><span class="p">,</span> <span class="n">importenv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the ``cmdstr`` string in ``shell``.  See ``run_shell`` for options.</span>
 
 <span class="sd">    :returns: Dict of environment vars update produced by ``cmdstr``</span>
@@ -427,7 +552,7 @@
 
 <div class="viewcode-block" id="importenv">
 <a class="viewcode-back" href="../../index.html#ska_shell.importenv">[docs]</a>
-<span class="k">def</span> <span class="nf">importenv</span><span class="p">(</span><span class="n">cmdstr</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="s2">&quot;bash&quot;</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">importenv</span><span class="p">(</span><span class="n">cmdstr</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="s2">&quot;bash&quot;</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run ``cmdstr`` in a bash shell and import the environment updates into the</span>
 <span class="sd">    current python environment (os.environ).  See ``bash_shell`` for options.</span>
 
@@ -440,30 +565,30 @@
 <span class="c1"># Null file-like object.  Needed because pyfits spews warnings to stdout</span>
 
 
-<span class="k">class</span> <span class="nc">_NullFile</span><span class="p">:</span>
-    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_NullFile</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">writelines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">writelines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
 
 <div class="viewcode-block" id="RunTimeoutError">
 <a class="viewcode-back" href="../../index.html#ska_shell.RunTimeoutError">[docs]</a>
-<span class="k">class</span> <span class="nc">RunTimeoutError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RunTimeoutError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
     <span class="k">pass</span></div>
 
 
 
 <div class="viewcode-block" id="Spawn">
 <a class="viewcode-back" href="../../index.html#ska_shell.Spawn">[docs]</a>
-<span class="k">class</span> <span class="nc">Spawn</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Spawn</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Provide methods to run subprocesses in a controlled and simple way.  Features:</span>
 <span class="sd">     - Uses the subprocess.Popen() class</span>
@@ -511,7 +636,7 @@
 <span class="sd">                  to filenames supplied in ``outputs`` list</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_open_for_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_open_for_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a file object for writing for ``f``, which may be nothing, a file</span>
 <span class="sd">        name, or a file-like object.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="p">:</span>
@@ -527,15 +652,15 @@
             <span class="k">return</span> <span class="n">openfile</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_timeout_handler</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">timeout</span><span class="p">):</span>
-        <span class="k">def</span> <span class="nf">handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_timeout_handler</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">timeout</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">RunTimeoutError</span><span class="p">(</span>
                 <span class="s2">&quot;Process pid=</span><span class="si">%d</span><span class="s2"> timed out after </span><span class="si">%d</span><span class="s2"> secs&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">timeout</span><span class="p">)</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">handler</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">stdout</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span>
         <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -568,14 +693,14 @@
         <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">outfiles</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_open_for_write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outfiles</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">outlines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Spawn.run">
 <a class="viewcode-back" href="../../index.html#ska_shell.Spawn.run">[docs]</a>
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">catch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">catch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the command ``cmd`` and abort if timeout is exceeded.</span>
 
 <span class="sd">        Attributes after run():</span>
@@ -663,7 +788,7 @@
     <a href="#">Back to Top</a></p>
   <p>
     &copy; Copyright 2013, Tom Aldcroft.<br/>
-    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 8.1.3. &nbsp;
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 9.1.0. &nbsp;
   </p>
 </footer>
   </body>
