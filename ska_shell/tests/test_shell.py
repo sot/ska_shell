@@ -1,5 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import os
+import threading
+import time
 
 import pytest
 from six.moves import cStringIO as StringIO
@@ -227,6 +229,49 @@ class TestTcsh:
 
         with pytest.raises(NonZeroReturnCode):
             out = bash("lsd; echo DONE", check=True)
+
+
+@pytest.mark.parametrize("shell_fn", [bash_shell, tcsh_shell])
+def test_unbuffered_streaming(shell_fn, tmpdir):
+    """With unbuffered=True, output must appear in the logfile as lines are
+    produced, not all at once when the process exits."""
+    logpath = tmpdir.join("stream.log")
+    snapshot = {}
+
+    def peek():
+        time.sleep(0.4)
+        snapshot["content"] = logpath.read() if logpath.exists() else ""
+
+    # Use sentinels that don't appear in the echoed command header.
+    cmd = "echo __alpha__\nsleep 1\necho __beta__"
+    t = threading.Thread(target=peek)
+    with open(str(logpath), "w", buffering=1) as fh:
+        t.start()
+        shell_fn(cmd, unbuffered=True, logfile=fh)
+    t.join()
+
+    mid_lines = snapshot["content"].splitlines()
+    assert "__alpha__" in mid_lines, f"'__alpha__' line should be present at 0.4s, got: {mid_lines!r}"
+    assert "__beta__" not in mid_lines, f"'__beta__' line should not be present at 0.4s, got: {mid_lines!r}"
+
+    full_lines = logpath.read().splitlines()
+    assert "__alpha__" in full_lines
+    assert "__beta__" in full_lines
+
+
+@pytest.mark.parametrize("shell", ["bash", "tcsh"])
+def test_unbuffered_getenv(shell):
+    """unbuffered=True must not break __PRINTENV__ parsing for getenv/importenv."""
+    setter = 'export UNBUF_VAR="value"' if shell == "bash" else 'setenv UNBUF_VAR "value"'
+    _, env = run_shell(setter, shell=shell, unbuffered=True, getenv=True)
+    assert env.get("UNBUF_VAR") == "value"
+
+
+@pytest.mark.parametrize("shell", ["bash", "tcsh"])
+def test_unbuffered_lines_no_cr(shell):
+    """pty OPOST is disabled, so lines must not carry stray '\\r' chars."""
+    outlines, _ = run_shell("echo one\necho two", shell=shell, unbuffered=True)
+    assert outlines == ["one", "two"]
 
 
 @pytest.mark.parametrize("shell", ["bash", "tcsh"])
